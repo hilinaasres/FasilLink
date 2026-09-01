@@ -1,0 +1,286 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --chat-input-text: #1a1a18;
+    --chat-input-placeholder: #7c8798;
+  }
+
+  .dark {
+    --chat-input-text: #f0ede8;
+    --chat-input-placeholder: #9ca3af;
+  }
+
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #F0EBFF;
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .bg-page {
+    background-color: #F0EBFF;
+  }
+
+  .fade-up-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.85s ease-out forwards;
+  }
+
+  @keyframes fadeUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .kenburns {
+    transform-origin: center;
+    animation: kenburns 20s ease-out forwards;
+  }
+
+  @keyframes kenburns {
+    0% {
+      transform: scale(1) translate(0, 0);
+    }
+    100% {
+      transform: scale(1.08) translate(-2%, -1.5%);
+    }
+  }
+
+  .slide-shimmer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.22) 45%, rgba(255, 255, 255, 0) 80%);
+    transform: translateX(-110%);
+    animation: shimmer 1.3s ease-out forwards;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-110%);
+    }
+    100% {
+      transform: translateX(110%);
+    }
+  }
+
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  }
+}
+
+.chat-input-field {
+  color: var(--chat-input-text) !important;
+}
+
+.chat-input-field::placeholder {
+  color: var(--chat-input-placeholder) !important;
+}
+
+/* Global floating label and placeholder behavior for form fields
+   - Wrap inputs/textarea/select + label inside a .form-field container
+   - Label floats when the input is focused or has a value (not :placeholder-shown)
+   - Placeholder hides when focused or when input has a value to avoid overlap
+*/
+input:focus::placeholder,
+textarea:focus::placeholder {
+  opacity: 0;
+  transition: opacity 120ms linear;
+}
+
+input:not(:placeholder-shown)::placeholder,
+textarea:not(:placeholder-shown)::placeholder {
+  opacity: 0;
+  transition: opacity 120ms linear;
+}
+
+input:focus ~ label,
+textarea:focus ~ label,
+input:not(:placeholder-shown) ~ label,
+textarea:not(:placeholder-shown) ~ label {
+  top: 0;
+  font-size: 11px;
+}
+
+select:focus ~ label,
+select:not([value='']) ~ label,
+select:not([value='']):valid ~ label {
+  top: 0;
+  font-size: 11px;
+}
+
+select option[value=''] {
+  color: #9a9a94;
+}
+
+.form-field {
+  position: relative;
+}
+.form-field input,
+.form-field textarea,
+.form-field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.9rem 0.75rem 0.6rem;
+}
+.form-field label {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.9rem;
+  transform-origin: left top;
+  transition: transform 150ms ease, color 150ms ease, opacity 150ms ease, top 150ms ease, font-size 150ms ease;
+  font-size: 0.95rem;
+  color: #6b7280;
+  pointer-events: none;
+  background: transparent;
+  padding: 0 0.25rem;
+}
+
+/* Float label when focused or when field has a value (covers prefilled inputs) */
+.form-field input:focus ~ label,
+.form-field textarea:focus ~ label,
+.form-field select:focus ~ label,
+.form-field input:not(:placeholder-shown) ~ label,
+.form-field textarea:not(:placeholder-shown) ~ label,
+.form-field select:not(:placeholder-shown) ~ label {
+  top: 0;
+  font-size: 11px;
+  transform: translateY(-1.3rem) scale(0.85);
+  color: var(--brand-600, #6D28D9);
+  opacity: 1;
+}
+
+/* Hide placeholder text when focused or when input has a value to prevent overlap */
+.form-field input:focus::placeholder,
+.form-field textarea:focus::placeholder,
+.form-field input:not(:placeholder-shown)::placeholder,
+.form-field textarea:not(:placeholder-shown)::placeholder {
+  opacity: 0;
+  transition: opacity 120ms linear;
+}
+
+/* Small accessibility tweak: keep label visible when field is readonly/disabled */
+.form-field input[readonly] ~ label,
+.form-field textarea[readonly] ~ label,
+.form-field input:disabled ~ label,
+.form-field textarea:disabled ~ label {
+  opacity: 0.9;
+}
+
+/* Logo */
+.logo {
+  width: 120px;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Notification badge */
+.notif-badge {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1rem;
+  height: 1rem;
+  background: #ff3b30;
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Filter bar */
+.filter-bar {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255,255,255,0.8);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-radius: 1rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.filter-button {
+  padding: 0.3rem 0.8rem;
+  background: #6c3bff1a;
+  color: #6c3bff;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.filter-button:hover {
+  background: #6c3bff33;
+}
+
+/* Category card (Browse by Category) */
+.category-card {
+  width: 160px;
+  height: 110px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.6);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.category-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.category-icon {
+  width: 28px;
+  height: 28px;
+}
+.category-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.category-name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Horizontal rows scrollbar styling */
+.items-row{
+  scroll-behavior: smooth;
+}
+.items-row::-webkit-scrollbar{
+  height:10px;
+}
+.items-row::-webkit-scrollbar-track{
+  background: transparent;
+}
+.items-row::-webkit-scrollbar-thumb{
+  background: rgba(15,23,42,0.08);
+  border-radius: 9999px;
+}
+.items-row:hover::-webkit-scrollbar-thumb{
+  background: rgba(15,23,42,0.18);
+}
+
+/* Firefox scrollbar */
+.items-row{
+  -ms-overflow-style: auto;
+}
+
+/* Hide default scrollbar when using custom arrows; keep visible on hover */
+.scrollbar-hidden::-webkit-scrollbar{ height:0px; }
+.scrollbar-hidden{ -ms-overflow-style: none; }
+
+.row-arrow{ width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; font-size:20px; }
+.row-arrow.left{ left:6px; }
+.row-arrow.right{ right:6px; }

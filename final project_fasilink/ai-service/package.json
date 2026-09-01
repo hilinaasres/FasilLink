@@ -1,0 +1,9 @@
+{
+  "name": "ai-service",
+  "version": "1.0.0",
+  "description": "AI service wrapper to run Flask app",
+  "scripts": {
+    "dev": "python app.py",
+    "start": "python app.py"
+  }
+}

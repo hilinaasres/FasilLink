@@ -1,0 +1,20 @@
+.about-post-card {
+  max-width: 900px;
+}
+
+.about-heading {
+  margin-top: 1rem;
+}
+
+.about-list {
+  margin-top: 0.5rem;
+  padding-left: 1.25rem;
+}
+
+.about-paragraph {
+  margin-top: 0;
+}
+
+.about-footer {
+  margin-bottom: 0;
+}

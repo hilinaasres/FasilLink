@@ -1,0 +1,9 @@
+.desktop-navbar-gradient {
+  background: linear-gradient(135deg, #020617 0%, #06142E 35%, #0B1F4D 70%, #112D6B 100%);
+}
+
+.profile-circle img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.notification-dot { min-width: 18px; height: 18px; padding: 0 6px; border-radius: 999px; background: #ef4444; color: white; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px rgba(239, 68, 68, 0.35); }
+
+.desktop-navbar-gradient .profile-circle { background: #fff; }

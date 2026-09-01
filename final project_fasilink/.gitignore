@@ -1,0 +1,43 @@
+# Node.js
+node_modules/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Build files
+dist/
+build/
+
+# Logs
+*.log
+
+# Python virtual environments
+.venv/
+.venv-1/
+venv/
+
+# VS Code
+.vscode/
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Temporary files
+temp_*.txt
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Python virtual environments
+.venv/
+.venv-1/
+venv/
+
+# Runtime uploaded files
+backend/uploads/
+backend/src/uploads/
+
+# Temporary files
+temp_*.txt
