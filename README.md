@@ -1,81 +1,128 @@
-FasilLink
-A full-stack marketplace platform for buying, selling, and renting properties, vehicles, and event-related items.
+# FasilLink
 
-FasilLink brings listings, search, communication, administration, and AI-powered recommendations together in one platform.
+A full-stack marketplace platform for buying, selling, and renting properties, vehicles, and event items.
 
-Overview
-FasilLink is designed as a digital marketplace where users can discover available properties, vehicles, and event materials, publish their own listings, communicate with other users, and receive personalized recommendations.
+FasilLink was developed as a practical marketplace application that brings listings, search, user accounts, communication, administration, and AI-based recommendations into one platform.
 
-The project was developed as a practical full-stack application combining modern web development, backend APIs, database management, real-time communication, and machine-learning-based recommendations.
+## Screenshots
 
-Key Features
-Marketplace
-Browse marketplace listings
-Property listings
-Vehicle listings
-Event material listings
-Buying and rental support
-Listing details and image galleries
-Recently added items
-Trending items
-Similar item recommendations
-Search and Discovery
-Marketplace search
-Category-based browsing
-Search filtering
-Price-based filtering
-Sorting
-Search result pages
-Personalized recommendations
-User Features
-User registration
-User login
-Authentication
-User profiles
-Favorites
-Notifications
-Listing management
-User-to-user communication
-Real-time chat
-Administration
-The platform includes an administration interface for managing the marketplace.
+### Marketplace
 
-Administrators can manage:
+| Homepage | Search & Filtering |
+|---|---|
+| ![Homepage](final%20project_fasilink/images/homepage.png) | ![Search and Filtering](final%20project_fasilink/images/search.png) |
 
-Users
-Marketplace listings
-Categories
-Platform content
-Reports and marketplace activity
-AI Recommendation System
-FasilLink includes a separate AI service for recommendation functionality.
+### Listings and Communication
 
-The recommendation system uses listing information and user-related data to identify items that may be relevant to users.
+| Listing Details | Real-Time Chat |
+|---|---|
+| ![Listing Details](final%20project_fasilink/images/listing-details.png) | ![Chat](final%20project_fasilink/images/chat.png) |
 
-The AI component includes machine-learning and similarity-based techniques, including sentence-transformer embeddings and similarity analysis.
+### AI and Administration
 
-System Architecture
+| AI Recommendations | Admin Dashboard |
+|---|---|
+| ![AI Recommendations](final%20project_fasilink/images/ai-recommendation.png) | ![Admin Dashboard](final%20project_fasilink/images/admin-dashboard.png) |
+
+## Overview
+
+FasilLink is a marketplace application where users can find and publish listings for properties, vehicles, and event-related items.
+
+Users can create accounts, browse listings, search and filter available items, save favorites, contact other users, and communicate through the platform.
+
+The system also includes an administration dashboard and a separate AI service for recommendation features.
+
+## Main Features
+
+### Marketplace
+
+- Browse available listings
+- Property listings
+- Vehicle listings
+- Event item listings
+- Buying and rental listings
+- View detailed listing information
+- Upload listing images
+- Manage personal listings
+- Recently added listings
+- Similar and recommended listings
+
+### Search and Filtering
+
+- Search marketplace listings
+- Browse by category
+- Filter listings
+- Filter by price
+- Sort search results
+- View individual listing details
+
+### User Accounts
+
+- User registration
+- User login
+- Authentication
+- User profiles
+- Manage personal listings
+- Add listings to favorites
+- Notifications
+- Contact sellers and renters
+
+### Real-Time Chat
+
+FasilLink includes real-time communication between users using Socket.IO.
+
+Users can communicate with other users when they are interested in a listing.
+
+### Admin Dashboard
+
+The project includes a separate administration dashboard for managing the platform.
+
+The administrator can manage areas such as:
+
+- Users
+- Listings
+- Categories
+- Marketplace activity
+- Platform information
+
+### AI Recommendations
+
+FasilLink includes a separate Python-based AI service.
+
+The AI service analyzes listing information and user-related data to help provide relevant recommendations.
+
+The recommendation component uses text processing, embeddings, and similarity-based techniques to identify listings that may be relevant to a user.
+
+## System Architecture
+
+```text
                     FasilLink
                         |
         +---------------+---------------+
         |               |               |
         v               v               v
-   React Frontend   Node.js API    AI Service
-   TypeScript       Express.js     Python/Flask
+    Frontend        Backend API      AI Service
+    React/Vite      Node.js         Python/Flask
+        |           Express             |
         |               |               |
         |               v               |
-        |          PostgreSQL           |
+        |          PostgreSQL            |
         |                               |
-        +-------------------------------+
+        +---------------+---------------+
                         |
-                 Recommendations
+                  Recommendations
 
-The main backend acts as the central API layer and communicates with the database and AI service.
+The React frontend communicates with the Node.js backend through APIs.
+
+The backend manages authentication, listings, users, database operations, communication, and other application functionality.
+
+The AI service runs separately and provides recommendation-related functionality to the backend.
 
 Technology Stack
 Frontend
 React
 TypeScript
+Vite
 React Router
 Tailwind CSS
 Axios
@@ -102,104 +149,106 @@ Pandas
 Scikit-learn
 Sentence Transformers
 Machine learning
-Recommendation algorithms
+Similarity-based recommendation
+Development Tools
+Git
+GitHub
+npm
+PostgreSQL
+Python
+VS Code
 Project Structure
 FasilLink/
 │
-└── final project_fasilink/
-    │
-    ├── frontend/
-    │   ├── public/
-    │   ├── src/
-    │   ├── package.json
-    │   └── ...
-    │
-    ├── backend/
-    │   ├── src/
-    │   ├── package.json
-    │   └── ...
-    │
-    ├── ai-service/
-    │   ├── Python recommendation service
-    │   └── ...
-    │
-    ├── admin-dashboard/
-    │   └── ...
-    │
-    ├── docs/
-    │   └── ...
-    │
-    └── README.md
-Main User Flow
+├── final project_fasilink/
+│
+├── frontend/
+│
+├── backend/
+│
+├── ai-service/
+│
+├── admin-dashboard/
+│
+└── docs/
+
+The main application is organized into separate frontend, backend, AI, administration, and documentation components.
+
+Application Flow
+User
+ |
+ v
 Register / Login
+ |
+ v
+Marketplace
+ |
+ +-------------------+
+ |                   |
+ v                   v
+Search & Filter    Browse Categories
+ |                   |
+ +---------+---------+
+           |
+           v
+      View Listing
+           |
+     +-----+-----+
+     |           |
+     v           v
+ Favorite      Contact
+                 |
+                 v
+                Chat
+                 |
+                 v
+        AI Recommendations
+Recommendation Flow
+User Information
        |
        v
-Browse Marketplace
-       |
-       v
-Search / Filter
-       |
-       v
-View Listing
-       |
-       +----------+
-       |          |
-       v          v
-  Add Favorite   Contact Seller
-       |          |
-       |          v
-       |        Chat
-       |
-       v
-AI Recommendations
-AI Recommendation Workflow
-User Activity
-     |
-     v
 User Preferences
-     |
-     v
+       |
+       v
 Listing Information
-     |
-     v
-Feature / Text Processing
-     |
-     v
-Embedding & Similarity Analysis
-     |
-     v
+       |
+       v
+Text Processing
+       |
+       v
+Embeddings
+       |
+       v
+Similarity Analysis
+       |
+       v
 Recommendation Ranking
-     |
-     v
+       |
+       v
 Recommended Listings
 
-The AI service is separated from the main Node.js backend so that recommendation functionality can be developed and improved independently.
+The recommendation system is separated from the main backend so that AI-related functionality can be developed and improved independently.
 
-Real-Time Communication
+Authentication
 
-FasilLink uses Socket.IO to support real-time communication between users.
+The backend provides authentication for user accounts.
 
-This allows users to communicate through the marketplace without relying only on traditional request-response interactions.
+Security-related technologies used in the project include:
 
-Authentication and Security
-
-The backend includes authentication and security-related components such as:
-
-JWT-based authentication
+JWT authentication
 Password hashing with bcrypt
-Request rate limiting
+Protected routes
 CORS configuration
-Environment-based configuration
-Input and request handling
-Protected user functionality
+Environment variables
+Request validation and handling
 
-Sensitive configuration values should be stored in environment variables rather than committed to the repository.
+Sensitive values such as passwords, API keys, database credentials, and service keys should be stored in environment variables and should not be committed to GitHub.
 
 Database
 
-FasilLink uses PostgreSQL as its primary database.
+FasilLink uses PostgreSQL as the main database.
 
-The database stores information related to areas such as:
+The database is used to store application information such as:
 
 Users
 Listings
@@ -207,50 +256,59 @@ Categories
 Favorites
 Messages
 Notifications
-Marketplace activity
-Recommendation-related data
+Marketplace data
+Recommendation-related information
+
+Database schema and related documentation are available in the project documentation.
+
 Getting Started
 Prerequisites
 
-Make sure the following are installed:
+Before running the project, install:
 
 Node.js
 npm
 Python 3
 PostgreSQL
 Git
-1. Clone the repository
+1. Clone the Repository
 git clone https://github.com/hilinaasres/FasilLink.git
 cd FasilLink
+2. Install Frontend Dependencies
 
-The main project is located inside:
+Navigate to the frontend directory:
 
-cd "final project_fasilink"
-2. Frontend
 cd frontend
 npm install
+
+Start the frontend development server:
+
 npm start
 
-The frontend development server runs on:
+The frontend normally runs on:
 
 http://localhost:3000
-3. Backend
+3. Install Backend Dependencies
 
-Open another terminal:
+Open another terminal and navigate to the backend:
 
-cd "final project_fasilink/backend"
+cd backend
 npm install
+
+Start the backend:
+
 npm start
 
 The backend uses port 5000 by default.
 
-4. AI Service
+http://localhost:5000
+4. Set Up the AI Service
 
 Open another terminal:
 
-cd "final project_fasilink/ai-service"
+cd ai-service
 
-Create and activate a Python virtual environment:
+Create a Python virtual environment:
 
 Windows
 python -m venv .venv
@@ -259,108 +317,161 @@ Linux / macOS
 python3 -m venv .venv
 source .venv/bin/activate
 
-Install the required Python packages:
+Install the Python dependencies:
 
 pip install -r requirements.txt
 
-Then start the AI service according to its application entry point.
+Start the AI service using the application's Python entry point.
+
+The AI service normally runs separately from the Node.js backend.
 
 Environment Variables
 
-Do not commit real credentials or secret keys to GitHub.
+FasilLink uses environment variables for configuration and sensitive information.
 
-Create the required environment files locally.
+Create the required .env files locally.
 
-Example configuration:
+Example backend configuration:
 
 PORT=5000
 AI_SERVICE_URL=http://localhost:5001
 BACKEND_BASE_URL=http://localhost:5000
 FRONTEND_BASE_URL=http://localhost:3000
 
-If payment, database, email, cloud-storage, or other external services are configured, their credentials should also be provided through environment variables.
+Other environment variables may be required depending on the services enabled in the application, including:
+
+PostgreSQL database configuration
+JWT secret
+Cloudinary configuration
+Email configuration
+Payment configuration
+AI service configuration
+
+Do not commit real credentials or secret keys to the repository.
 
 Development Architecture
 
-During development, the services can run separately:
+During development, the application can run as separate services:
 
-Frontend
-http://localhost:3000
-        |
-        v
-Backend API
-http://localhost:5000
-        |
-        +------------------+
-        |                  |
-        v                  v
+React Frontend
+localhost:3000
+       |
+       v
+Node.js / Express Backend
+localhost:5000
+       |
+       +-------------------+
+       |                   |
+       v                   v
    PostgreSQL          AI Service
-                       http://localhost:5001
+                       localhost:5001
 
-For production deployment, the backend can act as the public entry point while the AI service remains an internal service.
+This separation allows each part of the system to be developed and maintained independently.
 
+Real-Time Communication
+
+Socket.IO is used for real-time communication.
+
+The chat functionality allows users to communicate without relying only on traditional HTTP request and response cycles.
+
+This is useful for marketplace interactions where a buyer or renter needs to contact a seller.
+
+File and Image Management
+
+The application supports listing images and file uploads.
+
+The backend uses Multer for handling uploads, while Cloudinary can be used for cloud-based image storage and management.
+
+Admin System
+
+The admin dashboard is separated from the main user interface.
+
+It provides an interface for administrators to monitor and manage important parts of the marketplace.
+
+                    FasilLink
+                        |
+             +----------+----------+
+             |                     |
+             v                     v
+        User Platform         Admin Dashboard
+             |                     |
+             v                     v
+        Marketplace          Platform Management
+Project Documentation
+
+Additional documentation is available in the repository.
+
+The documentation includes information related to:
+
+Database schema
+API configuration
+Application setup
+Deployment
+Backend configuration
+Frontend configuration
 Production Deployment
 
-For production, the application can be deployed using a process manager or service manager.
+The application can be deployed using separate services for the frontend, backend, database, and AI service.
 
-Possible deployment components include:
+A production setup can include:
 
-Node.js backend
-Python AI service
-PostgreSQL
-PM2
-systemd
-Nginx
-HTTPS/TLS
+                   Internet
+                       |
+                       v
+                    Nginx
+                       |
+              +--------+--------+
+              |                 |
+              v                 v
+        Node.js Backend     Frontend
+              |
+       +------+------+
+       |             |
+       v             v
+ PostgreSQL       AI Service
 
-The original deployment documentation contains additional information about single-port deployment, PM2, systemd, and Nginx configuration.
+The repository also contains deployment documentation for running the application with tools such as PM2, systemd, and Nginx.
 
-Documentation
+What I Learned
 
-Additional project documentation is available inside the repository, including:
-
-Quick-start instructions
-Frontend documentation
-API configuration
-Build information
-Deployment documentation
-Database/schema documentation
-Future Improvements
-
-Potential future improvements include:
-
-More advanced recommendation models
-Improved personalization
-Better recommendation ranking
-Advanced marketplace analytics
-Improved mobile responsiveness
-More payment options
-Enhanced notification system
-Automated testing
-CI/CD pipeline
-Cloud deployment
-Project Goals
-
-FasilLink demonstrates how multiple technologies can be combined to build a practical marketplace application.
-
-The project focuses on:
+This project gave me practical experience with:
 
 Full-stack web development
+React and TypeScript
+Node.js and Express
+PostgreSQL database design
 REST API development
-Database design
-Authentication
-Real-time communication
-File and image management
+Authentication and authorization
+Real-time communication with Socket.IO
+File and image uploads
+Cloud-based image storage
 Machine learning
 Recommendation systems
-Software architecture
-Deployment
+Building separate backend services
+Git and GitHub
+Application deployment
+Future Improvements
+
+Possible improvements for future versions include:
+
+More advanced recommendation models
+Improved recommendation personalization
+Mobile application
+More payment integrations
+Better analytics
+Automated testing
+CI/CD
+Cloud deployment
+Improved notification features
 Author
 
 Hilina Asres
 
-Computer Science student and software developer.
+Computer Science Student
+University of Gondar, Ethiopia
+
+GitHub: @hilinaasres
 
 License
 
-This project is intended as an academic and portfolio project.
+This project was developed as an academic and portfolio project.
