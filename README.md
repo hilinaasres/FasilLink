@@ -16,7 +16,7 @@ FasilLink was developed as a practical marketplace application that brings listi
 
 | Listing Details | Real-Time Chat |
 |---|---|
-| ![Listing Details](final%20project_fasilink/images/listing-details.png) | ![Chat](final%20project_fasilink/images/chat.png) |
+| ![Listing Details](final%20project_fasilink/images/listing-details.png) | ![Chat](images/photo_2026-09-02_19-47-28.jpg) |
 
 ### AI and Administration
 
