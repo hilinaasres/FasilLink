@@ -10,7 +10,7 @@ FasilLink was developed as a practical marketplace application that brings listi
 
 | Homepage | Search & Filtering |
 |---|---|
-| ![Homepage](images/photo_2026-09-02_19-46-59.jpg) | ![Search and Filtering](final%20project_fasilink/images/search.png) |
+| ![Homepage](images/photo_2026-09-02_19-46-59.jpg) | ![registor and login](final%20project_fasilink/images/search.png) |
 
 ### Listings and Communication
 
