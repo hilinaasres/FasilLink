@@ -22,7 +22,7 @@ FasilLink was developed as a practical marketplace application that brings listi
 
 | AI Recommendations | Admin Dashboard |
 |---|---|
-| ![AI Recommendations](final%20project_fasilink/images/ai-recommendation.png) | ![Admin Dashboard](images/photo_2026-09-02_19-47-41.jpg) |
+| ![AI Recommendations](images/photo_2026-09-02_19-47-22.jpg) | ![Admin Dashboard](images/photo_2026-09-02_19-47-41.jpg) |
 
 ## Overview
 
