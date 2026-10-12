@@ -17,11 +17,13 @@ const app = express();
 app.use(cors());
 app.use((req, res, next) => {
     console.log(`[REQ] ${req.method} ${req.originalUrl} - Auth: ${req.headers.authorization ? 'Present' : 'Missing'}`);
-    const originalJson = res.json;
-    res.json = function(body) {
-        console.log(`[RES] ${req.method} ${req.originalUrl} - Status: ${res.statusCode} - Body:`, JSON.stringify(body).slice(0, 200));
-        return originalJson.apply(this, arguments);
-    };
+    if (process.env.NODE_ENV !== 'production') {
+        const originalJson = res.json;
+        res.json = function(body) {
+            console.log(`[RES] ${req.method} ${req.originalUrl} - Status: ${res.statusCode}`);
+            return originalJson.apply(this, arguments);
+        };
+    }
     next();
 });
 app.use(express.json({ limit: '20mb' }));
@@ -99,7 +101,7 @@ io.on('connection', (socket) => {
         console.log(`[SOCKET] socket ${socket.id} joined room ${roomId}`);
     });
 
-    socket.on('send_message', async (data) => {
+    socket.on('send_message', async (data, ack) => {
         try {
             const senderId = Number(socket.data.userId);
             const receiverId = Number(data?.receiverId);
@@ -108,86 +110,46 @@ io.on('connection', (socket) => {
             let itemId = rawItemId === undefined || rawItemId === null || rawItemId === '' ? null : Number(rawItemId);
             if (!Number.isFinite(itemId) || itemId <= 0) itemId = null;
 
-            if (!Number.isFinite(senderId) || !Number.isFinite(receiverId) || !message) return;
-
-            // Inherit latest non-null item context when replying from a generic thread.
-            if (itemId === null) {
-                const latestCtx = await require('./config/db').query(
-                    `
-                    SELECT item_id
-                    FROM Messages
-                    WHERE ((sender_id = $1 AND receiver_id = $2)
-                        OR (sender_id = $2 AND receiver_id = $1))
-                      AND item_id IS NOT NULL
-                    ORDER BY timestamp DESC, id DESC
-                    LIMIT 1
-                    `,
-                    [senderId, receiverId]
-                );
-                const inferred = latestCtx.rows[0]?.item_id;
-                itemId = inferred !== undefined && inferred !== null ? Number(inferred) : null;
-                if (!Number.isFinite(itemId) || itemId <= 0) itemId = null;
+            if (!Number.isFinite(senderId) || !Number.isFinite(receiverId) || !message) {
+                if (typeof ack === 'function') ack({ ok: false });
+                return;
             }
 
             const savedRes = await require('./config/db').query(
                 `
-                INSERT INTO Messages (sender_id, receiver_id, message, item_id)
-                VALUES ($1, $2, $3, $4)
-                RETURNING id, sender_id, receiver_id, message, timestamp, item_id
+                WITH ins AS (
+                    INSERT INTO Messages (sender_id, receiver_id, message, item_id)
+                    VALUES ($1, $2, $3, $4)
+                    RETURNING id, sender_id, receiver_id, message, timestamp, item_id
+                )
+                SELECT ins.*, i.title AS item_title
+                FROM ins
+                LEFT JOIN Items i ON i.id = ins.item_id
                 `,
                 [senderId, receiverId, message, itemId]
             );
 
-            const saved = savedRes.rows[0];
-
-            let item_title = null;
-            if (itemId !== null) {
-                const itemRes = await require('./config/db').query('SELECT title FROM Items WHERE id = $1', [itemId]);
-                item_title = itemRes.rows[0]?.title || null;
-            }
-
-            const payload = { ...saved, item_title };
+            const row = savedRes.rows[0];
+            const payload = { ...row, clientId: data?.clientId };
             const receiverRoom = `user_${receiverId}`;
-            const room = io.sockets.adapter.rooms.get(receiverRoom);
-            const memberCount = room ? room.size : 0;
-            console.log(`[SOCKET] emitting message:new to ${receiverRoom} (members: ${memberCount})`, payload);
+            if (typeof ack === 'function') ack({ ok: true, message: payload });
             io.to(receiverRoom).emit('message:new', payload);
-            if (memberCount === 0) {
-                const onlineUsersMap = app.get('onlineUsers');
-                const sockets = onlineUsersMap?.get(receiverId);
-                if (sockets && sockets.size > 0) {
-                    console.log(`[SOCKET] fallback direct send to receiver ${receiverId} sockets: ${[...sockets].join(', ')}`);
-                    sockets.forEach((socketId) => {
-                        io.to(socketId).emit('message:new', payload);
-                    });
-                }
-            }
-            socket.emit('message:sent', payload);
 
-            try {
-                const { createMessageNotification } = require('./services/notificationService');
-                const notification = await createMessageNotification(
+            const { createMessageNotification } = require('./services/notificationService');
+            createMessageNotification(
                     receiverId,
                     senderId,
                     message,
                     itemId,
-                    item_title
-                );
+                    row.item_title
+                )
+                .then((notification) => {
                 io.to(receiverRoom).emit('notification:new', notification);
-                if (memberCount === 0) {
-                    const onlineUsersMap = app.get('onlineUsers');
-                    const sockets = onlineUsersMap?.get(receiverId);
-                    if (sockets && sockets.size > 0) {
-                        sockets.forEach((socketId) => {
-                            io.to(socketId).emit('notification:new', notification);
-                        });
-                    }
-                }
-            } catch (notifErr) {
-                console.error('Socket message notification error:', notifErr);
-            }
+                })
+                .catch((notifErr) => console.error('Socket message notification error:', notifErr));
         } catch (e) {
             console.error('Socket send_message error:', e);
+            if (typeof ack === 'function') ack({ ok: false });
         }
     });
 

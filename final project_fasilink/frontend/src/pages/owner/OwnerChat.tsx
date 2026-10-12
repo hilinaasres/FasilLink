@@ -27,6 +27,11 @@ export default function OwnerChat() {
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const activeChatRef = useRef<Conversation | null>(null);
+
+  useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
 
   const loadInbox = useCallback(async (): Promise<Conversation[]> => {
     const response = await api.get('/messages/inbox');
@@ -116,7 +121,6 @@ export default function OwnerChat() {
 
     socket.connect();
     socket.emit('auth', { userId: user.id });
-    console.debug('[SOCKET][OwnerChat] connect emitted auth for user', user.id);
 
     const onIncoming = (payload: {
       id: number;
@@ -125,18 +129,19 @@ export default function OwnerChat() {
       message: string;
       timestamp: string;
       item_id?: number | null;
+      clientId?: string;
     }) => {
-      console.debug('[SOCKET][OwnerChat] incoming message', payload);
-      if (!activeChat) return;
+      const chat = activeChatRef.current;
+      if (!chat) return;
 
       const fromCustomer =
-        String(payload.sender_id) === activeChat.otherId ||
-        String(payload.receiver_id) === activeChat.otherId;
+        String(payload.sender_id) === chat.otherId ||
+        String(payload.receiver_id) === chat.otherId;
       const payloadItem =
         payload.item_id != null ? String(payload.item_id) : null;
       const itemMatches =
-        (activeChat.itemId === null && payloadItem === null) ||
-        (activeChat.itemId !== null && payloadItem === activeChat.itemId);
+        (chat.itemId === null && payloadItem === null) ||
+        (chat.itemId !== null && payloadItem === chat.itemId);
 
       if (!fromCustomer || !itemMatches) return;
 
@@ -145,10 +150,11 @@ export default function OwnerChat() {
         sender_id: payload.sender_id,
         message: payload.message,
         timestamp: payload.timestamp,
+        clientId: payload.clientId,
       });
 
       setMessages((prev) => {
-        if (prev.some((m) => m.id === mapped.id)) return prev;
+        if (prev.some((m) => m.id === mapped.id || (mapped.clientId && m.clientId === mapped.clientId))) return prev;
         return [...prev, mapped];
       });
     };
@@ -169,9 +175,9 @@ export default function OwnerChat() {
       message: string;
       timestamp: string;
       item_id?: number | null;
+      clientId?: string;
     }) => {
       onIncoming(payload);
-      refreshInbox();
     };
 
     socket.on('message:new', onMessageEvent);
@@ -181,7 +187,7 @@ export default function OwnerChat() {
       socket.off('message:new', onMessageEvent);
       socket.off('notification:new', refreshInbox);
     };
-  }, [user?.id, activeChat, loadInbox]);
+  }, [user?.id, loadInbox]);
 
   useEffect(() => {
     if (!user?.id || !activeChat) return;
@@ -193,29 +199,56 @@ export default function OwnerChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = async () => {
+  const sendSocketMessage = (message: string, clientId: string) => {
+    if (!activeChat) return;
+    const itemId = activeChat.itemId ? Number(activeChat.itemId) : null;
+    socket.emit(
+      'send_message',
+      {
+        receiverId: Number(activeChat.otherId),
+        itemId,
+        message,
+        clientId,
+      },
+      (res: { ok: boolean; message?: Parameters<typeof mapApiMessage>[0] }) => {
+        if (res.ok && res.message) {
+          const sent = mapApiMessage(res.message);
+          setMessages((prev) =>
+            prev.map((item) =>
+              item.clientId === clientId ? { ...sent, clientId } : item
+            )
+          );
+          return;
+        }
+
+        setMessages((prev) =>
+          prev.map((item) =>
+            item.clientId === clientId ? { ...item, pending: false, failed: true } : item
+          )
+        );
+        setSendError('Message failed, tap to retry.');
+      }
+    );
+  };
+
+  const handleSend = () => {
     if (!draft.trim() || !activeChat || !user) return;
 
+    const message = draft.trim();
+    const clientId = crypto.randomUUID();
+    const temporaryMessage = {
+      id: `pending-${clientId}`,
+      clientId,
+      senderId: String(user.id),
+      content: message,
+      timestamp: new Date().toISOString(),
+      pending: true,
+    };
+
     setSendError('');
-    try {
-      const res = await api.post('/messages', {
-        receiver_id: Number(activeChat.otherId),
-        message: draft.trim(),
-        item_id: activeChat.itemId ? Number(activeChat.itemId) : null,
-      });
-
-      const sent = mapApiMessage(res.data.message);
-      setMessages((prev) => [...prev, sent]);
-      setDraft('');
-
-      const inbox = await loadInbox();
-      setConversations(inbox);
-      const refreshed = inbox.find((c: Conversation) => c.key === activeChat.key);
-      if (refreshed) setActiveChat(refreshed);
-    } catch (e) {
-      console.error('Failed to send message', e);
-      setSendError('Could not send message. Please try again.');
-    }
+    setMessages((prev) => [...prev, temporaryMessage]);
+    setDraft('');
+    sendSocketMessage(message, clientId);
   };
 
   const filtered = conversations.filter(
@@ -356,7 +389,7 @@ export default function OwnerChat() {
                     const isOwner = msg.senderId === String(user?.id);
                     return (
                       <div
-                        key={msg.id}
+                        key={msg.clientId || msg.id}
                         className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
@@ -373,6 +406,27 @@ export default function OwnerChat() {
                               minute: '2-digit',
                             })}
                           </p>
+                          {msg.failed && msg.clientId && (
+                            <button
+                              type="button"
+                              className="mt-1 text-xs text-red-200 underline"
+                              onClick={() => {
+                                const retryClientId = msg.clientId;
+                                if (!retryClientId) return;
+                                setSendError('');
+                                setMessages((prev) =>
+                                  prev.map((item) =>
+                                    item.clientId === retryClientId
+                                      ? { ...item, pending: true, failed: false }
+                                      : item
+                                  )
+                                );
+                                sendSocketMessage(msg.content, retryClientId);
+                              }}
+                            >
+                              Failed, tap to retry
+                            </button>
+                          )}
                         </div>
                       </div>
                     );

@@ -1,8 +1,11 @@
 export interface ChatMessage {
   id: string;
+  clientId?: string;
   senderId: string;
   content: string;
   timestamp: string;
+  pending?: boolean;
+  failed?: boolean;
 }
 
 export interface Conversation {
@@ -39,11 +42,13 @@ export const mapInboxRow = (row: InboxRow): Conversation => ({
 
 export const mapApiMessage = (row: {
   id: number;
+  clientId?: string;
   sender_id: number;
   message: string;
   timestamp: string;
 }): ChatMessage => ({
   id: String(row.id),
+  clientId: row.clientId,
   senderId: String(row.sender_id),
   content: row.message,
   timestamp: row.timestamp,

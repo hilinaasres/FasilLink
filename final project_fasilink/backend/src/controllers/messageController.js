@@ -93,8 +93,6 @@ const sendMessage = async (req, res) => {
                 const roomName = `user_${receiverId}`;
                 const room = io.sockets.adapter.rooms.get(roomName);
                 const memberCount = room ? room.size : 0;
-                console.log(`[MSG] Emitting message to room ${roomName} (members: ${memberCount})`, payload);
-
                 io.to(roomName).emit('message:new', payload);
 
                 if (memberCount === 0) {

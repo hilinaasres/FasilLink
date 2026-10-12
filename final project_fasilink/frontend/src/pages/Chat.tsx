@@ -3,15 +3,19 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Send, MessageCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import socket from '../socket';
 import DesktopNavbar from '../components/desktop/DesktopNavbar';
 
 interface Message {
   id: string;
+  clientId?: string;
   sender_id: string;
   receiver_id: string;
   item_id: string | null;
   message: string;
   timestamp: string;
+  pending?: boolean;
+  failed?: boolean;
 }
 
 interface Conversation {
@@ -88,6 +92,11 @@ const ChatWidget: React.FC = () => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollTimerRef = useRef<number | null>(null);
+  const activeConvRef = useRef<Conversation | null>(null);
+
+  useEffect(() => {
+    activeConvRef.current = activeConv;
+  }, [activeConv]);
 
   const normalizeId = (val: any): string | null => {
     if (val === null || val === undefined || val === 'null' || val === '') return null;
@@ -182,11 +191,11 @@ const ChatWidget: React.FC = () => {
     }
   }, [user, withId, itemId, otherName, itemTitle, activeConv]);
 
-  const fetchMessages = useCallback(async (conv: Conversation) => {
+  const fetchMessages = useCallback(async (conv: Conversation, silent = false) => {
     if (!user) return;
     const userId = String(user.id);
     try {
-      setLoadingMsgs(true);
+      if (!silent) setLoadingMsgs(true);
       const params: Record<string, string> = { with: conv.otherId };
       if (conv.itemId) params.item = conv.itemId;
       const res = await api.get('/messages/conversation', { params });
@@ -200,13 +209,18 @@ const ChatWidget: React.FC = () => {
         message: m.message || m.content || m.text || '',
         timestamp: m.timestamp || m.created_at || new Date().toISOString(),
       }));
-      setMessages(msgs);
-      writeCachedMessages(userId, conv.key, msgs);
+      setMessages((previous) => {
+        const pending = previous.filter((message) => message.pending);
+        const confirmedIds = new Set(msgs.map((message) => message.id));
+        const next = [...msgs, ...pending.filter((message) => !confirmedIds.has(message.id))];
+        writeCachedMessages(userId, conv.key, next);
+        return next;
+      });
     } catch {
       const cached = readCachedMessages(userId, conv.key);
       setMessages(cached);
     } finally {
-      setLoadingMsgs(false);
+      if (!silent) setLoadingMsgs(false);
     }
   }, [user]);
 
@@ -223,9 +237,61 @@ const ChatWidget: React.FC = () => {
 
   useEffect(() => {
     if (!activeConv) return;
-    const interval = setInterval(() => fetchMessages(activeConv), 5000);
+    const interval = setInterval(() => fetchMessages(activeConv, true), 5000);
     return () => clearInterval(interval);
   }, [activeConv, fetchMessages]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    socket.connect();
+    socket.emit('auth', { userId: user.id });
+
+    const onMessage = (payload: {
+      id: number;
+      sender_id: number;
+      receiver_id: number;
+      item_id?: number | null;
+      message: string;
+      timestamp: string;
+      clientId?: string;
+    }) => {
+      const conv = activeConvRef.current;
+      if (!conv) return;
+
+      const payloadItem = normalizeId(payload.item_id);
+      const itemMatches = conv.itemId === payloadItem;
+      const otherMatches =
+        String(payload.sender_id) === conv.otherId ||
+        String(payload.receiver_id) === conv.otherId;
+      if (!itemMatches || !otherMatches) return;
+
+      const incoming: Message = {
+        id: String(payload.id),
+        clientId: payload.clientId,
+        sender_id: String(payload.sender_id),
+        receiver_id: String(payload.receiver_id),
+        item_id: payloadItem,
+        message: payload.message,
+        timestamp: payload.timestamp,
+      };
+
+      setMessages((previous) => {
+        if (previous.some((message) =>
+          message.id === incoming.id ||
+          (incoming.clientId && message.clientId === incoming.clientId)
+        )) {
+          return previous;
+        }
+        return [...previous, incoming];
+      });
+    };
+
+    socket.on('message:new', onMessage);
+    return () => {
+      socket.off('message:new', onMessage);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (scrollTimerRef.current) {
@@ -244,62 +310,74 @@ const ChatWidget: React.FC = () => {
     };
   }, [messages]);
 
-  const handleSend = async () => {
+  const sendSocketMessage = (text: string, clientId: string, conv: Conversation) => {
+    const itemId = conv.itemId ? Number(conv.itemId) : null;
+    socket.emit(
+      'send_message',
+      {
+        receiverId: Number(conv.otherId),
+        itemId,
+        message: text,
+        clientId,
+      },
+      (res: { ok: boolean; message?: Message }) => {
+        if (res.ok && res.message) {
+          const saved = {
+            ...res.message,
+            id: String(res.message.id),
+            sender_id: String(res.message.sender_id),
+            receiver_id: String(res.message.receiver_id),
+            item_id: normalizeId(res.message.item_id),
+            clientId,
+            pending: false,
+            failed: false,
+          };
+          setMessages((previous) =>
+            previous.map((message) =>
+              message.clientId === clientId ? saved : message
+            )
+          );
+          return;
+        }
+
+        setMessages((previous) =>
+          previous.map((message) =>
+            message.clientId === clientId
+              ? { ...message, pending: false, failed: true }
+              : message
+          )
+        );
+      }
+    );
+  };
+
+  const handleSend = () => {
     if (!input.trim() || !activeConv || !user || sending) return;
     const text = input.trim();
     const userId = String(user.id);
+    const conv = activeConv;
+    const clientId = crypto.randomUUID();
     setInput('');
     setSending(true);
 
     const optimistic: Message = {
-      id: `temp-${Date.now()}`,
+      id: `pending-${clientId}`,
+      clientId,
       sender_id: String(user.id),
-      receiver_id: activeConv.otherId,
-      item_id: activeConv.itemId,
+      receiver_id: conv.otherId,
+      item_id: conv.itemId,
       message: text,
       timestamp: new Date().toISOString(),
+      pending: true,
     };
     setMessages((prev) => {
       const next = [...prev, optimistic];
-      writeCachedMessages(userId, activeConv.key, next);
+      writeCachedMessages(userId, conv.key, next);
       return next;
     });
 
-    try {
-      const sendRes = await api.post('/messages', {
-        receiver_id: activeConv.otherId,
-        ...(activeConv.itemId ? { item_id: activeConv.itemId } : {}),
-        message: text,
-      });
-      const saved = sendRes.data?.message;
-      if (saved) {
-        setMessages((prev) => {
-          const withoutOptimistic = prev.filter((m) => m.id !== optimistic.id);
-          const normalizedSaved: Message = {
-            id: String(saved.id ?? optimistic.id),
-            sender_id: String(saved.sender_id ?? user.id),
-            receiver_id: String(saved.receiver_id ?? activeConv.otherId),
-            item_id: normalizeId(saved.item_id ?? activeConv.itemId),
-            message: String(saved.message ?? text),
-            timestamp: String(saved.timestamp ?? new Date().toISOString()),
-          };
-          const next = [...withoutOptimistic, normalizedSaved];
-          writeCachedMessages(userId, activeConv.key, next);
-          return next;
-        });
-      }
-      fetchMessages(activeConv);
-      fetchConversations();
-    } catch {
-      setMessages((prev) => {
-        const next = prev.filter((m) => m.id !== optimistic.id);
-        writeCachedMessages(userId, activeConv.key, next);
-        return next;
-      });
-      setInput(text);
-    } finally {
-      setSending(false);
-    }
+    sendSocketMessage(text, clientId, conv);
+    setSending(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -449,7 +527,7 @@ const ChatWidget: React.FC = () => {
                 ) : (
                   messages.map((msg) => (
                     <ChatMessageBubble
-                      key={msg.id}
+                      key={msg.clientId || msg.id}
                       msg={msg}
                       isMe={String(msg.sender_id) === String(user.id)}
                     />

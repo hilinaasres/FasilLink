@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 
 export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -7,8 +7,34 @@ const responseCache = new Map<string, { data: any; timestamp: number }>();
 
 const normalizeCacheKey = (url: string) => url.replace(/^\/+/, '');
 
+const isChatRequest = (url: string) => {
+  const normalized = url.replace(/^\/+/, '').replace(/^api\//, '');
+  return normalized === 'messages' || normalized.startsWith('messages/');
+};
+
+const getCacheKey = (url: string, params?: any) => {
+  const base = normalizeCacheKey(url);
+  if (!params) return base;
+
+  const entries = params instanceof URLSearchParams
+    ? Array.from(params.entries())
+    : Object.entries(params);
+  const query = entries
+    .filter(([, value]) => value !== undefined && value !== null)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join('&');
+
+  return query ? `${base}?${query}` : base;
+};
+
 export const clearCache = (url: string) => {
-  responseCache.delete(normalizeCacheKey(url));
+  const base = normalizeCacheKey(url);
+  for (const key of responseCache.keys()) {
+    if (key === base || key.startsWith(`${base}?`)) {
+      responseCache.delete(key);
+    }
+  }
 };
 
 const api = axios.create({
@@ -21,8 +47,8 @@ api.interceptors.request.use((config) => {
     config.url = config.url.replace(/^\/api/, '');
   }
 
-  if (config.method?.toLowerCase() === 'get') {
-    const cacheKey = normalizeCacheKey(String(config.url || ''));
+  if (config.method?.toLowerCase() === 'get' && !isChatRequest(String(config.url || ''))) {
+    const cacheKey = getCacheKey(String(config.url || ''), config.params);
     const cached = responseCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       return Promise.reject({
@@ -45,8 +71,11 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use((response) => {
-  if (response.config.method?.toLowerCase() === 'get') {
-    const cacheKey = normalizeCacheKey(String(response.config.url || ''));
+  if (
+    response.config.method?.toLowerCase() === 'get' &&
+    !isChatRequest(String(response.config.url || ''))
+  ) {
+    const cacheKey = getCacheKey(String(response.config.url || ''), response.config.params);
     responseCache.set(cacheKey, {
       data: response.data,
       timestamp: Date.now(),
@@ -71,7 +100,11 @@ api.interceptors.response.use((response) => {
 
 const originalGet = api.get.bind(api);
 api.get = ((url: string, config?: any) => {
-  const cacheKey = normalizeCacheKey(url);
+  if (isChatRequest(url)) {
+    return originalGet(url, config);
+  }
+
+  const cacheKey = getCacheKey(url, config?.params);
   const cached = responseCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return Promise.resolve({
