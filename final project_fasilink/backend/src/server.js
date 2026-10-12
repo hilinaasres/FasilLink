@@ -14,6 +14,8 @@ ensureSchema()
     .catch((e) => console.error('[DB] ensureSchema failed:', e));
 
 const app = express();
+// Render places the application behind one trusted reverse-proxy hop.
+app.set('trust proxy', 1);
 app.use(cors());
 app.use((req, res, next) => {
     console.log(`[REQ] ${req.method} ${req.originalUrl} - Auth: ${req.headers.authorization ? 'Present' : 'Missing'}`);
