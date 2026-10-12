@@ -37,7 +37,7 @@ const query = async (text, params) => {
     return await pool.query(text, params);
   } catch (err) {
     const msg = String(err && err.message ? err.message : err).toLowerCase();
-    if (msg.includes('connection terminated') || msg.includes('ecconnreset') || msg.includes('socket hang up') || msg.includes('connection reset')) {
+    if (msg.includes('connection terminated') || msg.includes('econnreset') || msg.includes('socket hang up') || msg.includes('connection reset')) {
       console.warn('DB query failed with transient error, attempting single retry:', msg);
       try {
         // try recreate pool and retry
