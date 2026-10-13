@@ -23,7 +23,11 @@ const adminLogin = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    const validPassword = await bcrypt.compare(password, user.password);
+    if (typeof user.password !== 'string' || !user.password) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    const validPassword = await bcrypt.compare(String(password), user.password);
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
