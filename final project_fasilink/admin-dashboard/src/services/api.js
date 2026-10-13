@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://fasillink.onrender.com/api';
 
 const getToken = () => {
   return localStorage.getItem('fasilink-admin-token') || sessionStorage.getItem('fasilink-admin-token');

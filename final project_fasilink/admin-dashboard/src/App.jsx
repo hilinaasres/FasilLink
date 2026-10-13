@@ -19,11 +19,13 @@ import AuditLogs from './pages/AuditLogs';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+
 export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <BrowserRouter basename="/admin">
+        <BrowserRouter basename={routerBasename}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
