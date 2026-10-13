@@ -234,7 +234,7 @@ const login = async (req, res) => {
 };
 
 const verifyEmailRedirect = (req, res) => {
-    const appUrl = process.env.FRONTEND_BASE_URL || process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+    const appUrl = process.env.FRONTEND_BASE_URL || process.env.APP_URL || process.env.FRONTEND_URL || 'https://fasillink-app.vercel.app';
     const token = String(req.params.token || '');
     return res.redirect(`${appUrl.replace(/\/$/, '')}/verify-email/${encodeURIComponent(token)}`);
 };
@@ -316,7 +316,7 @@ const resendVerification = async (req, res) => {
 };
 
 const passwordResetRedirect = (req, res) => {
-    const appUrl = process.env.FRONTEND_BASE_URL || process.env.APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+    const appUrl = process.env.FRONTEND_BASE_URL || process.env.APP_URL || process.env.FRONTEND_URL || 'https://fasillink-app.vercel.app';
     const token = String(req.params.token || '');
     return res.redirect(`${appUrl.replace(/\/$/, '')}/reset-password/${encodeURIComponent(token)}`);
 };
