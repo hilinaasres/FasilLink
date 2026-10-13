@@ -2,6 +2,20 @@
 
 A full-stack marketplace platform for buying, selling, and renting properties, vehicles, and event items.
 
+**Live demo:** https://fasillink-app.vercel.app
+**Code:** this repository
+
+The backend runs on a free server that sleeps when idle, so the first load can take up to a minute.
+
+### Demo accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Customer | [demo customer email] | [demo password] |
+| Owner | [demo owner email] | [demo password] |
+
+Deployed on: Vercel (customer site and admin dashboard), Render (backend API), Neon (PostgreSQL)
+
 FasilLink was developed as a practical marketplace application that brings listings, search, user accounts, communication, administration, and AI-based recommendations into one platform.
 
 ## Screenshots
@@ -66,6 +80,9 @@ The system also includes an administration dashboard and a separate AI service f
 - Add listings to favorites
 - Notifications
 - Contact sellers and renters
+- Online payments with Chapa (test mode)
+- Email verification
+- Password reset by email
 
 ### Real-Time Chat
 
@@ -98,19 +115,16 @@ The recommendation component uses text processing, embeddings, and similarity-ba
 ```text
                     FasilLink
                         |
-        +---------------+---------------+
-        |               |               |
-        v               v               v
-    Frontend        Backend API      AI Service
-    React/Vite      Node.js         Python/Flask
-        |           Express             |
-        |               |               |
-        |               v               |
-        |          PostgreSQL            |
-        |                               |
-        +---------------+---------------+
+        +---------------+-------------------+---------------+
+        |               |                   |               |
+        v               v                   v               v
+    Frontend        Admin Dashboard     Backend API      AI Service
+    CRA +           Vite               Node.js         Python/Flask
+    TypeScript                          Express
+        |               |                   |
+        +---------------+-------------------+
                         |
-                  Recommendations
+                   PostgreSQL
 
 The React frontend communicates with the Node.js backend through APIs.
 
@@ -120,15 +134,19 @@ The AI service runs separately and provides recommendation-related functionality
 
 Technology Stack
 Frontend
+Create React App
 React
 TypeScript
-Vite
 React Router
 Tailwind CSS
 Axios
 Framer Motion
 Lucide React
 Socket.IO Client
+Admin Dashboard
+Vite
+React
+React Router
 Backend
 Node.js
 Express.js
@@ -138,7 +156,8 @@ JWT
 bcrypt
 Multer
 Cloudinary
-Nodemailer
+Chapa (payments)
+Brevo transactional email API (Nodemailer SMTP as fallback)
 Axios
 dotenv
 AI Service
@@ -239,6 +258,7 @@ JWT authentication
 Password hashing with bcrypt
 Protected routes
 CORS configuration
+CORS restricted to the deployed frontend and admin URLs
 Environment variables
 Request validation and handling
 
@@ -260,6 +280,8 @@ Marketplace data
 Recommendation-related information
 
 Database schema and related documentation are available in the project documentation.
+
+Create the tables with `backend/schema.sql`.
 
 Getting Started
 Prerequisites
@@ -335,8 +357,26 @@ Example backend configuration:
 
 PORT=5000
 AI_SERVICE_URL=http://localhost:5001
-BACKEND_BASE_URL=http://localhost:5000
-FRONTEND_BASE_URL=http://localhost:3000
+DATABASE_URL=<your-database-url>
+JWT_SECRET=<your-jwt-secret>
+FRONTEND_URL=<your-frontend-url>
+ADMIN_URL=<your-admin-url>
+BACKEND_URL=<your-backend-url>
+BREVO_API_KEY=<your-brevo-api-key>
+BREVO_SENDER_EMAIL=<your-brevo-sender-email>
+BREVO_SENDER_NAME=<your-brevo-sender-name>
+CLOUDINARY_CLOUD_NAME=<your-cloudinary-cloud-name>
+CLOUDINARY_API_KEY=<your-cloudinary-api-key>
+CLOUDINARY_API_SECRET=<your-cloudinary-api-secret>
+CHAPA_SECRET_KEY=<your-chapa-secret-key>
+
+Example frontend configuration:
+
+REACT_APP_API_BASE_URL=<your-api-base-url>
+
+Example admin dashboard configuration:
+
+VITE_API_BASE_URL=<your-api-base-url>
 
 Other environment variables may be required depending on the services enabled in the application, including:
 
@@ -411,26 +451,19 @@ Backend configuration
 Frontend configuration
 Production Deployment
 
-The application can be deployed using separate services for the frontend, backend, database, and AI service.
+```text
+                              Browser
+                             /       \
+                            v         v
+     Vercel (customer site + admin dashboard)   Render (Express API + Socket.IO)
+                                                        |
+                              +-------------------------+------------------+
+                              |                         |                  |
+                              v                         v                  v
+                       Neon (PostgreSQL)       Cloudinary (images)   Brevo (email)
+```
 
-A production setup can include:
-
-                   Internet
-                       |
-                       v
-                    Nginx
-                       |
-              +--------+--------+
-              |                 |
-              v                 v
-        Node.js Backend     Frontend
-              |
-       +------+------+
-       |             |
-       v             v
- PostgreSQL       AI Service
-
-The repository also contains deployment documentation for running the application with tools such as PM2, systemd, and Nginx.
+The AI recommendation service runs locally and is not part of the live demo yet.
 
 What I Learned
 
@@ -450,6 +483,10 @@ Recommendation systems
 Building separate backend services
 Git and GitHub
 Application deployment
+Deploying a full-stack app to Vercel, Render, and Neon
+Debugging production issues (CORS, API response caching, blocked SMTP ports)
+Replacing SMTP with a transactional email API
+Optimistic UI updates and acknowledgments in real-time chat
 Future Improvements
 
 Possible improvements for future versions include:
@@ -461,7 +498,7 @@ More payment integrations
 Better analytics
 Automated testing
 CI/CD
-Cloud deployment
+Deploy the AI recommendation service
 Improved notification features
 Author
 
