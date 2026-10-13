@@ -16,7 +16,13 @@ ensureSchema()
 const app = express();
 // Render places the application behind one trusted reverse-proxy hop.
 app.set('trust proxy', 1);
-app.use(cors());
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    process.env.ADMIN_URL,
+    'http://localhost:3000',
+    'http://localhost:5173',
+].filter(Boolean);
+app.use(cors({ origin: allowedOrigins }));
 app.use((req, res, next) => {
     console.log(`[REQ] ${req.method} ${req.originalUrl} - Auth: ${req.headers.authorization ? 'Present' : 'Missing'}`);
     if (process.env.NODE_ENV !== 'production') {
@@ -55,7 +61,7 @@ app.get('/api/health', async (req, res) => {
 
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: '*' }
+    cors: { origin: allowedOrigins }
 });
 
 const onlineUsers = new Map();
