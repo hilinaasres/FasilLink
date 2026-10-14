@@ -5,7 +5,7 @@ const CHAPA_URL = 'https://api.chapa.co/v1/transaction/initialize';
 const CHAPA_VERIFY_URL = 'https://api.chapa.co/v1/transaction/verify';
 const CHAPA_SECRET_KEY = process.env.CHAPA_SECRET_KEY;
 
-const DEFAULT_TEST_EMAIL = process.env.CHAPA_TEST_EMAIL || 'test.user@gmail.com';
+const getConfiguredTestEmail = () => String(process.env.CHAPA_TEST_EMAIL || '').trim().toLowerCase();
 
 const getBaseUrls = () => {
     const port = process.env.PORT || 5000;
@@ -49,13 +49,8 @@ const resolvePayerDetails = async (req) => {
         }
     }
 
-    if (!isValidEmail(email)) {
-        email = DEFAULT_TEST_EMAIL;
-    }
-    email = String(email).trim().toLowerCase();
-    if (!isValidEmail(email)) {
-        email = DEFAULT_TEST_EMAIL;
-    }
+    if (!isValidEmail(email)) email = getConfiguredTestEmail();
+    if (!isValidEmail(email)) email = null;
     if (!first_name) first_name = 'FasilLink';
     if (!last_name) last_name = 'Customer';
 

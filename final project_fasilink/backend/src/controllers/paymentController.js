@@ -96,6 +96,10 @@ const makeTxRef = (prefix) =>
 
 const sendChapaCheckout = async (req, res, options) => {
     const payer = await resolvePayerDetails(req);
+    if (!payer.email) {
+        return res.status(400).json({ error: 'Invalid payer email' });
+    }
+
     const { backend, frontend } = getBaseUrls();
     const {
         amount,
@@ -775,9 +779,8 @@ const initializeRenewal = async (req, res) => {
 const chapaConfig = async (req, res) => {
     res.json({
         test_mode: isTestMode(),
-        test_email_hint: process.env.CHAPA_TEST_EMAIL || 'test.user@gmail.com',
         message: isTestMode()
-            ? 'Chapa test mode is active. Use your real account email or the test email from CHAPA_TEST_EMAIL.'
+            ? 'Chapa test mode is active.'
             : 'Chapa live mode is active.',
     });
 };
