@@ -344,9 +344,22 @@ const initializePayment = async (req, res) => {
             payment_kind: itemId ? 'listing' : 'posting',
         });
     } catch (error) {
-        console.error('Initialize Chapa payment error:', error.response?.data || error.message);
-        res.status(500).json({
-            error: formatChapaError(error),
+        const status = Number(error.chapaStatus || error.response?.status);
+        const message = error.message || formatChapaError(error);
+        console.error('Initialize Chapa payment error:', {
+            status: status || 'unknown',
+            message,
+        });
+
+        if (error.code === 'CHAPA_CONFIGURATION_ERROR') {
+            return res.status(500).json({
+                error: 'Payment provider is not configured. Set CHAPA_SECRET_KEY on the backend.',
+                test_mode: isTestMode(),
+            });
+        }
+
+        return res.status(500).json({
+            error: `Unable to initialize Chapa payment: ${message}`,
             test_mode: isTestMode(),
         });
     }

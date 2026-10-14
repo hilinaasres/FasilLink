@@ -128,7 +128,7 @@ const OwnerOverview = () => {
         const [itemsRes, inboxRes, paymentSummaryRes, noticesRes] = await Promise.allSettled([
           api.get('/items/mine'),
           api.get('/messages/inbox'),
-          api.get('/payments/mine-summary'),
+          api.get('/payment/mine-summary'),
           api.get('/notifications', {
             params: user?.id ? { userId: user.id } : undefined,
           }),

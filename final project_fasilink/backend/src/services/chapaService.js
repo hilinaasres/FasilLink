@@ -3,15 +3,15 @@ const db = require('../config/db');
 
 const CHAPA_URL = 'https://api.chapa.co/v1/transaction/initialize';
 const CHAPA_VERIFY_URL = 'https://api.chapa.co/v1/transaction/verify';
-const CHAPA_SECRET_KEY = process.env.CHAPA_SECRET_KEY || 'CHASECK_TEST-wT02kblCgX94H3s8M5gY0yZ5zWdSbG5';
+const CHAPA_SECRET_KEY = process.env.CHAPA_SECRET_KEY;
 
 const DEFAULT_TEST_EMAIL = process.env.CHAPA_TEST_EMAIL || 'test.user@gmail.com';
 
 const getBaseUrls = () => {
     const port = process.env.PORT || 5000;
     return {
-        backend: (process.env.BACKEND_BASE_URL || `http://localhost:${port}`).replace(/\/$/, ''),
-        frontend: (process.env.FRONTEND_BASE_URL || 'http://localhost:3002').replace(/\/$/, ''),
+        backend: (process.env.BACKEND_URL || process.env.BACKEND_BASE_URL || `http://localhost:${port}`).replace(/\/$/, ''),
+        frontend: (process.env.FRONTEND_URL || process.env.FRONTEND_BASE_URL || 'http://localhost:3002').replace(/\/$/, ''),
     };
 };
 
@@ -108,6 +108,12 @@ const initializeChapaCheckout = async ({
     return_url,
     customization,
 }) => {
+    if (!CHAPA_SECRET_KEY) {
+        const error = new Error('Chapa payment provider is not configured.');
+        error.code = 'CHAPA_CONFIGURATION_ERROR';
+        throw error;
+    }
+
     const numericAmount = Number(amount);
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
         throw new Error('Payment amount must be greater than zero.');
@@ -142,8 +148,14 @@ const initializeChapaCheckout = async ({
         });
     } catch (error) {
         const chapaMessage = formatChapaError(error);
-        console.error('Chapa initialize failed:', chapaMessage, error.response?.data);
-        throw new Error(chapaMessage);
+        const chapaError = new Error(chapaMessage);
+        chapaError.code = 'CHAPA_REQUEST_ERROR';
+        chapaError.chapaStatus = error.response?.status;
+        console.error('Chapa initialize failed:', {
+            status: chapaError.chapaStatus || 'unknown',
+            message: chapaMessage,
+        });
+        throw chapaError;
     }
 
     const checkoutUrl = extractCheckoutUrl(response.data);
