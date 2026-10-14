@@ -10,6 +10,7 @@ const checkExpirations = async () => {
             UPDATE Items 
             SET status = 'suspended'
             WHERE status = 'active'
+              AND is_demo = false
               AND created_at < NOW() - INTERVAL '2 months'
             RETURNING id, owner_id, title
         `);
@@ -33,12 +34,14 @@ const checkExpirations = async () => {
             UPDATE Items
             SET status = 'expired'
             WHERE status = 'suspended'
+              AND is_demo = false
               AND id IN (
                   SELECT item_id FROM (
                       -- This is a simplification; in a real system we'd track status_changed_at
                       -- For now we check original created_at exceeds 2 months + 3 days
                       SELECT id as item_id FROM Items 
                       WHERE status = 'suspended' 
+                        AND is_demo = false
                         AND created_at < NOW() - INTERVAL '2 months' - INTERVAL '3 days'
                   ) temp
               )

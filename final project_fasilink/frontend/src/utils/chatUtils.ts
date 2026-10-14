@@ -16,6 +16,7 @@ export interface Conversation {
   itemTitle: string | null;
   lastMessage: string;
   lastMessageTime: string;
+  unread: number;
 }
 
 export type InboxRow = {
@@ -25,6 +26,7 @@ export type InboxRow = {
   timestamp?: string;
   item_id?: number | null;
   item_title?: string | null;
+  unread_count?: number;
 };
 
 export const conversationKey = (otherId: string, itemId: string | null) =>
@@ -38,6 +40,7 @@ export const mapInboxRow = (row: InboxRow): Conversation => ({
   itemTitle: row.item_title || null,
   lastMessage: row.message || '',
   lastMessageTime: row.timestamp || new Date().toISOString(),
+  unread: Number(row.unread_count || 0),
 });
 
 export const mapApiMessage = (row: {

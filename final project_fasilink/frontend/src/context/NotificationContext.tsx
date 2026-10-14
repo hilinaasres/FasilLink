@@ -25,6 +25,7 @@ interface NotificationContextValue {
   messageNotifications: AppNotification[];
   unreadCount: number;
   ownerUnreadCount: number;
+  notificationUnreadCount: number;
   loading: boolean;
   refreshNotifications: () => Promise<void>;
   markNotificationRead: (id: string | number) => Promise<void>;
@@ -84,10 +85,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       const mineRows = mineRes.data?.notifications || [];
       const messages = mineRows.filter((row: any) => String(row.type || '').toLowerCase() === 'message');
+      const nonMessageRows = mineRows.filter((row: any) => String(row.type || '').toLowerCase() !== 'message');
 
-      setNotifications(mappedNotifications);
+      setNotifications(mappedNotifications.filter((row: any) => String(row.type || '').toLowerCase() !== 'message'));
       setMessageNotifications(messages);
-      setOwnerUnreadCount(mineRows.filter((row: any) => !Boolean(row.is_read)).length);
+      setOwnerUnreadCount(nonMessageRows.filter((row: any) => !Boolean(row.is_read)).length);
       // reset retry attempts on success
       retryAttemptsRef.current = 0;
       lastRefreshAtRef.current = Date.now();
@@ -160,6 +162,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     messageNotifications,
     unreadCount: messageNotifications.filter((item) => !item.is_read).length,
     ownerUnreadCount,
+    notificationUnreadCount: notifications.filter((item) => !item.read).length,
     loading,
     refreshNotifications,
     markNotificationRead,

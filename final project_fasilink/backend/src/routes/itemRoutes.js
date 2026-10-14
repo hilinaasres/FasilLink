@@ -59,7 +59,7 @@ router.get('/mine-customer', verifyToken, listMyItems);
 router.get('/:id/renewal-preview-customer', verifyToken, getRenewalPreview);
 router.patch('/:id/customer', verifyToken, updateMyItem);
 router.delete('/:id/customer', verifyToken, deleteMyItem);
-router.post('/customer', verifyToken, upload.fields([
+router.post('/customer', verifyToken, requireRole(['owner', 'admin', 'seller']), upload.fields([
 	{ name: 'images', maxCount: 5 },
 	{ name: 'legal_document', maxCount: 1 }
 ]), createItem);

@@ -3,7 +3,10 @@
 }
 
 .floating-ai-body {
-  height: 420px;
+  height: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
 }
 
 .floating-ai-rank-badge {

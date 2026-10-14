@@ -78,6 +78,7 @@ export default function OwnerChat() {
       itemTitle: null,
       lastMessage: '',
       lastMessageTime: new Date().toISOString(),
+      unread: 0,
     });
   }, [location.search]);
 

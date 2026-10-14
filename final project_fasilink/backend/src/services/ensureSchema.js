@@ -38,6 +38,7 @@ const ensureSchema = async () => {
   await db.query(`ALTER TABLE IF EXISTS Items ADD COLUMN IF NOT EXISTS legal_document TEXT;`);
   await db.query(`ALTER TABLE IF EXISTS Items ADD COLUMN IF NOT EXISTS subcity VARCHAR(100);`);
   await db.query(`ALTER TABLE IF EXISTS Items ADD COLUMN IF NOT EXISTS kebele VARCHAR(50);`);
+  await db.query(`ALTER TABLE IF EXISTS Items ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT false;`);
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS user_favorites (
@@ -78,6 +79,14 @@ const ensureSchema = async () => {
       resource_id INT,
       details JSONB DEFAULT '{}'::jsonb,
       ip_address VARCHAR(100),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+      id SERIAL PRIMARY KEY,
+      email VARCHAR(320) NOT NULL UNIQUE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
@@ -246,4 +255,3 @@ const ensureSchema = async () => {
 };
 
 module.exports = { ensureSchema };
-

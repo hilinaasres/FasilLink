@@ -50,7 +50,7 @@ const CustomerDashboard: React.FC = () => {
         </div>
         <div className="post-form-card">
           <p>This page is for customers. Open the publishing form to post an item.</p>
-          <Link className="btn-primary" to="/customer-posting/add">Post Item</Link>
+          <Link className="btn-primary" to="/seller/upgrade">Become a seller</Link>
         </div>
       </div>
     );
@@ -97,7 +97,7 @@ const CustomerDashboard: React.FC = () => {
       <div className="post-form-card">
         <h2 className="mt-0">Publish an item</h2>
         <p>Open the customer publishing form to add your own listing.</p>
-        <Link className="btn-primary" to="/customer-posting/add">Post Item</Link>
+        <Link className="btn-primary" to="/seller/upgrade">Become a seller</Link>
       </div>
 
       <div className="post-form-card">

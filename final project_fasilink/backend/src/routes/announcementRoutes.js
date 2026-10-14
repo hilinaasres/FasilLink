@@ -9,7 +9,9 @@ router.get('/mine', verifyToken, async (req, res) => {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const result = await db.query(
-      'SELECT * FROM Notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 30',
+      `SELECT * FROM Notifications
+       WHERE user_id = $1 AND type <> 'message'
+       ORDER BY created_at DESC LIMIT 30`,
       [userId]
     );
 
@@ -46,15 +48,23 @@ router.patch('/read', verifyToken, async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
   try {
-    const userId = req.query.userId ? Number(req.query.userId) : null;
-    const announcements = await db.query('SELECT * FROM Announcements ORDER BY created_at DESC LIMIT 10');
+    const userId = Number(req.user?.id);
+    const userRes = await db.query('SELECT created_at FROM Users WHERE id = $1', [userId]);
+    const announcements = await db.query(
+      `SELECT * FROM Announcements
+       WHERE created_at >= COALESCE($1, '-infinity'::timestamp)
+       ORDER BY created_at DESC LIMIT 10`,
+      [userRes.rows[0]?.created_at || null]
+    );
     let notifications = [];
     
     if (userId) {
       const userRes = await db.query(
-        'SELECT * FROM Notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20',
+        `SELECT * FROM Notifications
+         WHERE user_id = $1 AND type <> 'message'
+         ORDER BY created_at DESC LIMIT 20`,
         [userId]
       );
       notifications = userRes.rows;

@@ -96,6 +96,9 @@ const categoryMatch = (itemCategory: string | undefined, active: string) => {
   return normalized.includes(active.toLowerCase());
 };
 
+const isTrueFlag = (value: unknown) =>
+  value === true || value === 1 || (typeof value === 'string' && value.trim().toLowerCase() === 'true');
+
 const mapPostedItemToHomepageItem = (item: OwnerPostedItem): Item => ({
   id: item.id,
   title: item.title,
@@ -107,7 +110,7 @@ const mapPostedItemToHomepageItem = (item: OwnerPostedItem): Item => ({
   kebele: undefined,
   rating: undefined,
   reviews: undefined,
-  isPremium: Boolean(item.premium),
+  isPremium: isTrueFlag(item.premium),
   isVerified: false,
   imageCount: item.images?.length || 0,
   purpose: item.saleType,
@@ -171,7 +174,7 @@ const DesktopHomepage: React.FC = () => {
             kebele: item.kebele,
             rating: Number(item.rating || item.avg_rating || 4.2),
             reviews: Number(item.reviews || item.rating_count || 0),
-            isPremium: Boolean(item.premium || item.isPremium),
+            isPremium: isTrueFlag(item.premium) || isTrueFlag(item.isPremium),
             isVerified: Boolean(item.verified || item.owner?.verified),
             imageCount: Number(item.imageCount || item.images?.length || 0),
             purpose: item.purpose || item.transaction_type,
@@ -323,7 +326,7 @@ const DesktopHomepage: React.FC = () => {
   );
 
   const recentItems = useMemo(
-    () => [...items].sort(sortByNewest),
+    () => items.filter((item) => !item.isPremium).sort(sortByNewest),
     [items]
   );
 
@@ -599,20 +602,20 @@ const DesktopHomepage: React.FC = () => {
               </>
             ) : (
               <>
-                {renderListingRail(
-                  'Premium listings',
-                  'Hand-picked premium items with a live 72-hour rotation',
-                  premiumWindow,
-                  <>
-                    <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">
-                      {premiumItems.length} premium items
-                    </span>
-                    <span className="rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-1 text-[#4F46E5]">
-                      Rotates in {formatCountdown(premiumCountdownMs)}
-                    </span>
-                  </>,
-                  'No premium listings available yet.',
-                )}
+                {premiumItems.length > 0 && renderListingRail(
+                    'Premium listings',
+                    'Hand-picked premium items with a live 72-hour rotation',
+                    premiumWindow,
+                    <>
+                      <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">
+                        {premiumItems.length} premium items
+                      </span>
+                      <span className="rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-1 text-[#4F46E5]">
+                        Rotates in {formatCountdown(premiumCountdownMs)}
+                      </span>
+                    </>,
+                    'No premium listings available yet.',
+                  )}
 
                 {renderListingRail(
                   'Recent additions',
@@ -631,8 +634,8 @@ const DesktopHomepage: React.FC = () => {
 
                 {items.length === 0 && (
                   <div className="rounded-[16px] bg-white p-10 text-center shadow-[0_12px_30px_rgba(26,26,26,0.08)]">
-                    <p className="text-xl font-semibold text-[#1A1A1A]">No listings found</p>
-                    <p className="mt-3 text-[#1A1A1A]/70">Try another category or search term.</p>
+                    <p className="text-xl font-semibold text-[#1A1A1A]">No active listings yet</p>
+                    <p className="mt-3 text-[#1A1A1A]/70">New marketplace listings will appear here soon.</p>
                     <Link
                       to="/"
                       className="mt-6 inline-flex rounded-full border border-[#6D28D9] bg-[#EEF2FF] px-6 py-3 text-sm font-semibold text-[#1F2937] transition hover:bg-[#6D28D9] hover:text-white"

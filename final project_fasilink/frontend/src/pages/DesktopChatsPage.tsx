@@ -399,10 +399,10 @@ const DesktopNavbar: React.FC<DesktopNavbarProps> = () => {
           {/* Post Item */}
           <button
             type="button"
-            onClick={() => navigate((user as any)?.isSeller ? '/seller/add' : '/post-item')}
+            onClick={() => navigate((user as any)?.isSeller ? '/seller/add' : '/seller/upgrade')}
             className="rounded-full bg-[#6D28D9] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[#5B21B6]"
           >
-            Post Item
+            Become a seller
           </button>
 
           {/* Profile / Login */}

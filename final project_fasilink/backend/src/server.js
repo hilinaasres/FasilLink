@@ -184,6 +184,7 @@ const favoriteRoutes = require('./routes/favoriteRoutes');
 const ratingRoutes = require('./routes/ratingRoutes');
 const discoveryRoutes = require('./routes/discoveryRoutes');
 const chargingRoutes = require('./routes/chargingRoutes');
+const newsletterRoutes = require('./routes/newsletterRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/payment', paymentRoutes);
@@ -196,6 +197,7 @@ app.use('/api/favorites', favoriteRoutes);
 app.use('/api/ratings', ratingRoutes);
 app.use('/api/discover', discoveryRoutes);
 app.use('/api/charging', chargingRoutes);
+app.use('/api/newsletter', newsletterRoutes);
 
 // Proxy AI service under /api/ai -> forwards to the AI microservice
 const aiTarget = process.env.AI_SERVICE_URL || 'http://localhost:5001';

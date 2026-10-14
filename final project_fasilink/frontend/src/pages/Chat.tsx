@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import socket from '../socket';
 import DesktopNavbar from '../components/desktop/DesktopNavbar';
+import { Conversation, mapInboxRow } from '../utils/chatUtils';
 
 interface Message {
   id: string;
@@ -16,17 +17,6 @@ interface Message {
   timestamp: string;
   pending?: boolean;
   failed?: boolean;
-}
-
-interface Conversation {
-  key: string;
-  otherId: string;
-  otherName: string;
-  itemId: string | null;
-  itemTitle: string | null;
-  lastMessage: string;
-  lastMessageTime: string;
-  unread: number;
 }
 
 interface ChatMessageBubbleProps {
@@ -126,16 +116,7 @@ const ChatWidget: React.FC = () => {
       setLoadingConvs(true);
       const res = await api.get('/messages/inbox');
       const rows = res.data?.conversations || [];
-      const mapped: Conversation[] = rows.map((row: any) => ({
-        key: `${row.other_id}-${row.item_id ?? 'general'}`,
-        otherId: String(row.other_id),
-        otherName: row.other_name || 'User',
-        itemId: normalizeId(row.item_id),
-        itemTitle: row.item_title || null,
-        lastMessage: row.message || '',
-        lastMessageTime: row.timestamp || new Date().toISOString(),
-        unread: Number(row.unread_count || 0),
-      }));
+      const mapped: Conversation[] = rows.map(mapInboxRow);
       setConversations(mapped);
       writeCachedConversations(userId, mapped);
 

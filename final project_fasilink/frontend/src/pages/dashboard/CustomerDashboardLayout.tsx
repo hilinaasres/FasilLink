@@ -31,7 +31,7 @@ export default function CustomerDashboardLayout() {
   const navItems: NavItem[] = useMemo(
     () => [
       { to: '/customer/overview', label: 'Dashboard Overview', Icon: LayoutDashboard },
-      { to: '/customer-posting/add', label: 'Post Item', Icon: PlusCircle },
+      { to: '/seller/upgrade', label: 'Become a seller', Icon: PlusCircle },
       { to: '/customer/profile', label: 'My Profile', Icon: User },
       { to: '/customer/profile/edit', label: 'Edit Profile', Icon: User },
       { to: '/customer/favorites', label: 'Favorites', Icon: Heart },
@@ -212,4 +212,3 @@ export default function CustomerDashboardLayout() {
     </>
   );
 }
-

@@ -23,15 +23,14 @@ const DesktopNavbar: React.FC<DesktopNavbarProps> = () => {
   const profileRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
   const { unreadCount } = useMessageNotifications();
-  const { notifications, ownerUnreadCount, markNotificationRead, markAllNotificationsRead } = useNotifications();
+  const { notifications, notificationUnreadCount, markNotificationRead, markAllNotificationsRead } = useNotifications();
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [favoritesAlert, setFavoritesAlert] = useState<string | null>(null);
   const navigate = useNavigate();
   const isCustomer = Boolean(user) && !user?.isSeller && String(user?.role || '').toLowerCase() !== 'seller' && String(user?.role || '').toLowerCase() !== 'owner' && String(user?.role || '').toLowerCase() !== 'admin';
   const messagesPath = user?.isSeller ? '/seller/chat' : '/chats';
-  const postItemPath = user?.isSeller ? '/seller/add' : '/customer-posting';
-  const postItemAlertCount = isCustomer ? unreadCount + ownerUnreadCount : 0;
+  const postItemPath = user?.isSeller ? '/seller/add' : '/seller/upgrade';
 
   const handleNotificationClick = async (n: any) => {
     try {
@@ -263,7 +262,7 @@ const DesktopNavbar: React.FC<DesktopNavbarProps> = () => {
               aria-label="Notifications"
             >
               <Bell className="w-5 h-5 text-white/90" />
-              {notifications.filter(n => !n.read).length > 0 && (
+              {notificationUnreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold shadow animate-pulse">
                   {notifications.filter(n => !n.read).length > 99 ? '99+' : notifications.filter(n => !n.read).length}
                 </span>
@@ -315,12 +314,7 @@ const DesktopNavbar: React.FC<DesktopNavbarProps> = () => {
             onClick={() => navigate(postItemPath)}
             className="relative rounded-full bg-[#6D28D9] px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-[#5B21B6]"
           >
-            Post Item
-            {postItemAlertCount > 0 && (
-              <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
-                {postItemAlertCount > 99 ? '99+' : postItemAlertCount}
-              </span>
-            )}
+            {isCustomer ? 'Become a seller' : 'Post Item'}
           </button>
 
           {/* Profile / Sign in */}

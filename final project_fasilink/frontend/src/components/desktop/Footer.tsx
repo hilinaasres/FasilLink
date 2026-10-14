@@ -1,8 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Globe, Share, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import api from '../../services/api';
 
 const Footer: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [subscribeMessage, setSubscribeMessage] = useState('');
+  const [subscribeError, setSubscribeError] = useState(false);
+  const currentYear = new Date().getFullYear();
+
+  const handleSubscribe = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubscribeMessage('');
+    setSubscribeError(false);
+    try {
+      await api.post('/newsletter', { email });
+      setEmail('');
+      setSubscribeMessage('Thanks for subscribing!');
+    } catch (error: any) {
+      setSubscribeError(true);
+      setSubscribeMessage(error?.response?.data?.error || 'Unable to subscribe right now.');
+    }
+  };
+
   return (
     <footer className="bg-[#111827] text-neutral-200 py-12">
       <div className="max-w-[1280px] mx-auto px-5">
@@ -64,10 +84,11 @@ const Footer: React.FC = () => {
 
             <div>
               <h5 className="text-sm font-medium text-white">Stay in the loop</h5>
-              <form onSubmit={(e) => { e.preventDefault(); /* TODO: wire up subscribe */ }} className="mt-2 flex gap-2">
-                <input type="email" placeholder="Your email" className="flex-1 rounded-xl px-3 py-2 bg-neutral-900 text-white placeholder-neutral-500 outline-none" />
+              <form onSubmit={handleSubscribe} className="mt-2 flex gap-2">
+                <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Your email" className="flex-1 rounded-xl px-3 py-2 bg-neutral-900 text-white placeholder-neutral-500 outline-none" />
                 <button className="px-4 py-2 rounded-xl bg-[#6C3BFF] text-white font-semibold hover:bg-[#5530d1] transition-colors">Subscribe</button>
               </form>
+              {subscribeMessage && <p className={`text-xs ${subscribeError ? 'text-red-300' : 'text-emerald-300'}`}>{subscribeMessage}</p>}
             </div>
           </div>
 
@@ -76,7 +97,7 @@ const Footer: React.FC = () => {
         <div className="border-t border-neutral-700 my-8"></div>
 
         <div className="flex flex-col md:flex-row items-center justify-between text-xs text-neutral-500 gap-3">
-          <p className="text-center md:text-left">&copy; 2024 FasilLink. All rights reserved.</p>
+          <p className="text-center md:text-left">&copy; {currentYear} FasilLink. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
             <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>

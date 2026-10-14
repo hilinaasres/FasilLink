@@ -373,10 +373,22 @@ const FloatingAIAssistant: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   const pushAssistant = (text: string, items?: Item[]) => {
     setMessages(prev => [...prev, {
@@ -515,7 +527,19 @@ const FloatingAIAssistant: React.FC = () => {
   }
 
   return (
-    <div className={`fixed bottom-6 right-6 z-50 bg-white rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 ${isMinimized ? 'w-80 h-16' : 'w-[420px] h-[580px]'}`}>
+    <div
+      className="fixed inset-0 z-50 bg-black/20"
+      onMouseDown={() => setIsOpen(false)}
+      role="presentation"
+    >
+      <div
+        ref={panelRef}
+        className={`absolute bottom-6 right-6 flex max-h-[80vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl transition-all duration-300 max-sm:bottom-4 max-sm:left-4 max-sm:right-4 ${isMinimized ? 'h-16 w-80 max-sm:w-auto' : 'h-[580px] w-[420px] max-sm:h-[80vh] max-sm:w-auto'}`}
+        onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="FasilLink AI Assistant"
+      >
       <div className="floating-ai-header">
         <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -653,6 +677,7 @@ const FloatingAIAssistant: React.FC = () => {
           </div>
         </>
       )}
+      </div>
     </div>
   );
 };
