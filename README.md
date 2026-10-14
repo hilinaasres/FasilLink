@@ -11,8 +11,8 @@ A full-stack marketplace platform for buying, selling, and renting properties, v
 
 | Role | Email | Password |
 |------|-------|----------|
-| Customer | `[demo customer email]` | `[demo password]` |
-| Owner | `[demo owner email]` | `[demo password]` |
+| Customer | `demo.customer@example.com` | `Demo@12345` |
+| Owner | `demo.owner@example.com` | `Demo@12345` |
 
 **Deployed on:** Vercel (customer site and admin dashboard), Render (backend API), Neon (PostgreSQL)
 
