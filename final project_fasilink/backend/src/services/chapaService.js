@@ -6,6 +6,7 @@ const CHAPA_VERIFY_URL = 'https://api.chapa.co/v1/transaction/verify';
 const CHAPA_SECRET_KEY = process.env.CHAPA_SECRET_KEY;
 
 const getConfiguredTestEmail = () => String(process.env.CHAPA_TEST_EMAIL || '').trim().toLowerCase();
+const isTestMode = () => String(CHAPA_SECRET_KEY || '').startsWith('CHASECK_TEST');
 
 const getBaseUrls = () => {
     const port = process.env.PORT || 5000;
@@ -29,7 +30,12 @@ const normalizePhone = (phone) => {
 
 const resolvePayerDetails = async (req) => {
     const body = req.body || {};
-    let email = String(body.email || '').trim().toLowerCase();
+    const configuredTestEmail = getConfiguredTestEmail();
+    const testMode = isTestMode();
+    const useConfiguredTestEmail = testMode && isValidEmail(configuredTestEmail);
+    let email = testMode
+        ? (useConfiguredTestEmail ? configuredTestEmail : null)
+        : String(body.email || '').trim().toLowerCase();
     let first_name = String(body.first_name || '').trim();
     let last_name = String(body.last_name || '').trim();
     let phone_number = normalizePhone(body.phone_number || body.phone);
@@ -39,7 +45,9 @@ const resolvePayerDetails = async (req) => {
         const userRes = await db.query('SELECT name, email, phone FROM Users WHERE id = $1', [userId]);
         const user = userRes.rows[0];
         if (user) {
-            if (!email && user.email) email = String(user.email).trim().toLowerCase();
+            if (!useConfiguredTestEmail && !email && user.email) {
+                email = String(user.email).trim().toLowerCase();
+            }
             if (!first_name && user.name) {
                 const parts = String(user.name).trim().split(/\s+/);
                 first_name = parts[0] || 'FasilLink';
@@ -49,7 +57,6 @@ const resolvePayerDetails = async (req) => {
         }
     }
 
-    if (!isValidEmail(email)) email = getConfiguredTestEmail();
     if (!isValidEmail(email)) email = null;
     if (!first_name) first_name = 'FasilLink';
     if (!last_name) last_name = 'Customer';
@@ -191,8 +198,6 @@ const isChapaPaymentSuccessful = (verification, query = {}) => {
     const dataStatus = String(verification?.data?.status || '').toLowerCase();
     return ['success', 'successful', 'completed'].includes(dataStatus);
 };
-
-const isTestMode = () => String(CHAPA_SECRET_KEY).startsWith('CHASECK_TEST');
 
 module.exports = {
     CHAPA_SECRET_KEY,
