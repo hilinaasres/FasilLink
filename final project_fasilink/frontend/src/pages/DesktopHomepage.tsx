@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search } from 'lucide-react';
 import DesktopNavbar from '../components/desktop/DesktopNavbar';
 import FloatingAIAssistant from '../components/desktop/FloatingAIAssistant';
 import Footer from '../components/desktop/Footer';
@@ -8,6 +8,7 @@ import ItemCard from '../components/desktop/ItemCard';
 import api from '../services/api';
 import './DesktopHomepage.css';
 import { loadOwnerItems, OwnerItem as OwnerPostedItem } from './owner/ownerStorage';
+import heroBg from '../assets/hero-bg.webp';
 
 interface Item {
   id: string;
@@ -397,46 +398,80 @@ const DesktopHomepage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F0EBFF] text-[#1F2937]">
-      <DesktopNavbar transactionType={transactionType} onTransactionTypeChange={setTransactionType} />
+      <DesktopNavbar isHomePage transactionType={transactionType} onTransactionTypeChange={setTransactionType} />
 
       <main className="flex-1">
 
         {/* HERO */}
-        <section className="relative overflow-hidden group">
-          <div className="absolute inset-0">
-            {heroImages.map((src, index) => (
-              <div
-                key={src}
-                className={`absolute inset-0 transition-opacity duration-1000 ${index === activeSlide ? 'opacity-100' : 'opacity-0'}`}
-              >
-                <img
-                  src={src}
-                  alt={`Fasil Ghebbi slide ${index + 1}`}
-                  className="hero-image h-full w-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
-                />
-              </div>
-            ))}
-            <div className="absolute inset-0 bg-black/50" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/10 to-black/30" />
-          </div>
+        <section className="relative min-h-[600px] overflow-hidden bg-[#060B31] group">
+          <div
+            className="absolute inset-0 bg-[#060B31] bg-cover bg-[position:right_center] bg-no-repeat"
+            style={{ backgroundImage: `url(${heroBg})` }}
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#060B31]/95 via-[#060B31]/65 to-[#060B31]/10 md:from-[#060B31]/90 md:via-[#060B31]/35 md:to-transparent" />
 
-          <div className="relative mx-auto flex min-h-[420px] max-w-[1280px] flex-col justify-center gap-8 px-5 py-14 sm:px-8">
+          <div className="relative mx-auto flex min-h-[600px] max-w-[1440px] flex-col justify-center px-5 pb-12 pt-32 sm:px-8 md:pt-36 lg:px-12">
 
             {/* Headline */}
-            <div className="max-w-3xl text-white">
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#C7D2FE]">FasilLink Marketplace</p>
-              <h1 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
-                Find Anything in FasilLink
+            <div className="w-full max-w-[560px] text-white">
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-[#C7D2FE]">FasilLink Marketplace</p>
+              <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-white sm:text-6xl">
+                Find your next <span className="text-[#A78BFA]">place</span> or product
               </h1>
-              <p className="mt-3 max-w-xl text-lg leading-8 text-white/85">
-                Smart Search. Better Results.
+              <p className="mt-5 max-w-xl text-base leading-7 text-white/85 sm:text-lg">
+                Search trusted listings for homes, vehicles, land, events, and more.
               </p>
-            </div>
 
-            {/* Search card */}
-            <div className="w-full max-w-3xl rounded-3xl border border-white/20 bg-white/10 backdrop-blur-md p-4 shadow-2xl">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
-                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/80">List by</p>
+              <div className="mt-7 w-full rounded-2xl bg-white p-2 shadow-2xl">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="relative flex min-w-0 flex-1 items-center">
+                    <input
+                      type="text"
+                      id="homepage-search"
+                      form="homepage-search-form"
+                      value={search}
+                      onFocus={() => setShowSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                      onChange={(e) => setSearch(e.target.value)}
+                      onKeyDown={handleSearchInputKeyDown}
+                      placeholder="Search homes, cars, land, or events"
+                      className="w-full rounded-xl border-0 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#6C3BFF]"
+                      autoComplete="off"
+                    />
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div className="absolute left-0 right-0 top-full z-20 mt-2 rounded-2xl border border-slate-200 bg-white shadow-xl">
+                        {suggestions.map((suggestion) => (
+                          <button key={suggestion.id} type="button" onMouseDown={() => handleSuggestionClick(suggestion.id)} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm text-slate-700 hover:bg-[#F3E8FF]">
+                            <span>{suggestion.title}</span>
+                            <span className="text-xs uppercase tracking-[0.15em] text-slate-400">{suggestion.category}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button type="submit" form="homepage-search-form" aria-label="Search listings" className="rounded-xl bg-[#6C3BFF] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#5A2FE0]">
+                    Search
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="mr-1 text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Explore</span>
+                {[
+                  { label: 'Homes', value: 'homes' },
+                  { label: 'Vehicles', value: 'vehicles' },
+                  { label: 'Land', value: 'land' },
+                  { label: 'Events', value: 'event-materials' },
+                ].map((category) => (
+                  <Link key={category.value} to={`/search?category=${category.value}`} className="rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white hover:text-[#060B31]">
+                    {category.label}
+                  </Link>
+                ))}
+              </div>
+
+              <form id="homepage-search-form" onSubmit={handleSearchSubmit} className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Looking to</span>
                 <div className="inline-flex overflow-hidden rounded-full border border-white/30 bg-white/10 p-1">
                   {(['rent', 'sell'] as const).map((t) => (
                     <button
@@ -449,100 +484,6 @@ const DesktopHomepage: React.FC = () => {
                     </button>
                   ))}
                 </div>
-              </div>
-
-              <form onSubmit={handleSearchSubmit} className="relative flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      id="homepage-search"
-                      value={search}
-                      onFocus={() => setShowSuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                      onChange={(e) => setSearch(e.target.value)}
-                      onKeyDown={handleSearchInputKeyDown}
-                      placeholder="Search houses, cars, events... e.g. 2 bedroom house Azezo under 5000"
-                      className="w-full rounded-xl border border-transparent bg-white px-5 py-3 pr-[52px] text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#6C3BFF]"
-                      autoComplete="off"
-                    />
-                    <button
-                      type="submit"
-                      aria-label="Search listings"
-                      className="absolute right-[6px] top-1/2 h-9 w-9 -translate-y-1/2 rounded-[8px] border-0 bg-[#7c6bf0] text-white shadow-sm transition hover:brightness-95"
-                    >
-                      <Search className="mx-auto h-4 w-4" />
-                    </button>
-
-                    {showSuggestions && suggestions.length > 0 && (
-                      <div className="absolute left-0 right-0 z-20 mt-2 rounded-3xl border border-slate-200 bg-white shadow-xl">
-                        {suggestions.map((suggestion) => (
-                          <button
-                            key={suggestion.id}
-                            type="button"
-                            onMouseDown={() => handleSuggestionClick(suggestion.id)}
-                            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-[#F3E8FF]"
-                          >
-                            <span>{suggestion.title}</span>
-                            <span className="text-xs uppercase tracking-[0.15em] text-slate-400">{suggestion.category}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowQuickFilters((current) => !current)}
-                    className="inline-flex h-[44px] items-center gap-2 rounded-xl border border-white/20 bg-[#2E3262]/70 px-4 text-sm font-medium text-white/90 transition hover:bg-[#2E3262]"
-                    aria-label="Filters"
-                    aria-controls="quick-filters-content"
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    Filters
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#7c6bf0]" />
-                  </button>
-                </div>
-
-                {showQuickFilters && (
-                  <div id="quick-filters-content">
-                    <div className="flex flex-wrap gap-2">
-                      {['All', 'Homes', 'Vehicles', 'Event Materials', 'Land'].map((category) => {
-                        const active = activeCategory === category;
-                        return (
-                          <button
-                            key={category}
-                            type="button"
-                            onClick={() => toggleCategory(category)}
-                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${active ? 'border-[#6C3BFF] bg-[#EEF2FF] text-[#4F46E5]' : 'border-slate-200 bg-white text-slate-700 hover:border-[#6C3BFF] hover:text-[#6C3BFF]'}`}
-                          >
-                            {category}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { label: 'All', value: 'all' as const },
-                        { label: 'For Rent', value: 'rent' as const },
-                        { label: 'For Sale', value: 'sell' as const },
-                      ].map((option) => {
-                        const active = transactionType === option.value;
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => toggleTransaction(option.value)}
-                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${active ? 'border-[#6C3BFF] bg-[#EEF2FF] text-[#4F46E5]' : 'border-slate-200 bg-white text-slate-700 hover:border-[#6C3BFF] hover:text-[#6C3BFF]'}`}
-                          >
-                            {option.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </form>
             </div>
 

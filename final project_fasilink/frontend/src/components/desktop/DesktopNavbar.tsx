@@ -10,11 +10,12 @@ import { useFavorites } from '../../context/FavoritesContext';
 interface DesktopNavbarProps {
   transactionType?: 'all' | 'rent' | 'sell';
   onTransactionTypeChange?: (type: 'all' | 'rent' | 'sell') => void;
+  isHomePage?: boolean;
 }
 
 // Use `FavoriteItem` from FavoritesContext; avoid local duplicate type to prevent conflicts.
 
-const DesktopNavbar: React.FC<DesktopNavbarProps> = () => {
+const DesktopNavbar: React.FC<DesktopNavbarProps> = ({ isHomePage = false }) => {
   const [scrolled, setScrolled] = useState(false);
   const { favorites: favoriteItems, favoriteCount, toggleFavorite } = useFavorites();
   const [showFavoritesDropdown, setShowFavoritesDropdown] = useState(false);
@@ -122,7 +123,7 @@ const DesktopNavbar: React.FC<DesktopNavbarProps> = () => {
 
   return (
     <nav
-      className={`desktop-navbar-gradient sticky top-0 z-40 w-full backdrop-blur-xl transition-all duration-300 ${scrolled ? 'shadow-[0_8px_20px_rgba(0,0,0,0.08)]' : ''} border-b border-slate-200`}
+      className={`${isHomePage ? 'desktop-navbar-home absolute top-0 left-0' : 'desktop-navbar-gradient sticky'} z-40 w-full backdrop-blur-xl transition-all duration-300 ${scrolled && !isHomePage ? 'shadow-[0_8px_20px_rgba(0,0,0,0.08)]' : ''} ${isHomePage ? '' : 'border-b border-slate-200'}`}
     >
       {favoritesAlert && (
         <div className="pointer-events-none fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-full border border-red-100 bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-lg">
