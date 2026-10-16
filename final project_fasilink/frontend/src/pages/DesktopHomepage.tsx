@@ -1,313 +1,189 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, CalendarDays, CarFront, House, Map, Shapes } from 'lucide-react';
 import DesktopNavbar from '../components/desktop/DesktopNavbar';
 import FloatingAIAssistant from '../components/desktop/FloatingAIAssistant';
 import Footer from '../components/desktop/Footer';
-import ItemCard from '../components/desktop/ItemCard';
+import HomepageListingCard, { HomepageListing } from '../components/desktop/HomepageListingCard';
+import HomepageListingRail from '../components/desktop/HomepageListingRail';
 import api from '../services/api';
 import './DesktopHomepage.css';
 import { loadOwnerItems, OwnerItem as OwnerPostedItem } from './owner/ownerStorage';
 import heroBg from '../assets/hero-bg.webp';
+import { useAuth } from '../context/AuthContext';
+import { categorySlugFromName, searchPathForCategory } from '../utils/categoryUtils';
 
-interface Item {
-  id: string;
-  title: string;
-  price: number;
-  image: string;
-  location: string;
-  category?: string;
-  subcity?: string;
-  kebele?: string;
-  rating?: number;
-  reviews?: number;
-  isPremium?: boolean;
-  isVerified?: boolean;
-  imageCount?: number;
-  purpose?: string;
-  tags?: string[];
-  createdAt?: string;
-  created_at?: string;
+interface Item extends HomepageListing {
   status?: string;
-}
-
-interface SearchSuggestion {
-  id: string;
-  title: string;
-  category: string;
 }
 
 const heroImages = ['/hero1.jpg', '/hero2.png'];
 
-const HOME_SECTION_CARD_COUNT = 14;
-const PREMIUM_ROTATION_MS = 72 * 60 * 60 * 1000;
-const RECENT_ROTATION_MS = 5 * 1000;
-const PREMIUM_ROTATION_STORAGE_KEY = 'homepage-premium-rotation-start';
-const RECENT_ROTATION_STORAGE_KEY = 'homepage-recent-rotation-start';
+const featuredCategories = ['Homes', 'Vehicles', 'Land', 'Events'];
 
-const sortByNewest = (a: Item, b: Item) => {
-  const left = Number(new Date(b.createdAt || b.created_at || 0));
-  const right = Number(new Date(a.createdAt || a.created_at || 0));
-  return left - right;
-};
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const getStoredRotationSeed = (key: string) => {
-  if (typeof window === 'undefined') return Date.now();
-
-  try {
-    const stored = window.localStorage.getItem(key);
-    if (stored && !Number.isNaN(Number(stored))) {
-      return Number(stored);
+const readRecord = (...values: unknown[]): Record<string, unknown> | undefined => {
+  for (const value of values) {
+    if (isRecord(value)) return value;
+    if (typeof value === 'string' && value.trim()) {
+      try {
+        const parsed: unknown = JSON.parse(value);
+        if (isRecord(parsed)) return parsed;
+      } catch (error) {
+        console.warn('Ignoring invalid listing metadata on homepage:', error);
+      }
     }
-
-    const now = Date.now();
-    window.localStorage.setItem(key, String(now));
-    return now;
-  } catch {
-    return Date.now();
   }
+  return undefined;
 };
 
-const buildCycledWindow = <T,>(items: T[], startIndex: number, size: number) => {
-  if (items.length === 0) return [] as T[];
-  const visible = Math.min(size, items.length);
-
-  if (items.length <= visible) {
-    return items.slice(0, visible);
+const firstText = (...values: unknown[]): string => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
   }
-
-  const normalizedStart = ((startIndex % items.length) + items.length) % items.length;
-  return Array.from({ length: visible }, (_, offset) => items[(normalizedStart + offset) % items.length]);
+  return '';
 };
 
-const formatCountdown = (durationMs: number) => {
-  const safeDuration = Math.max(0, durationMs);
-  const hours = Math.floor(safeDuration / (60 * 60 * 1000));
-  const minutes = Math.floor((safeDuration % (60 * 60 * 1000)) / (60 * 1000));
-  const seconds = Math.floor((safeDuration % (60 * 1000)) / 1000);
-  return `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
-};
-
-const categoryMatch = (itemCategory: string | undefined, active: string) => {
-  const normalized = String(itemCategory || '').toLowerCase();
-  if (active === 'All') return true;
-  if (active === 'Others') {
-    return !['vehicles', 'homes', 'event materials', 'land', 'vehicle', 'home', 'event', 'property'].some((value) => normalized.includes(value));
+const numberValue = (...values: unknown[]): number => {
+  for (const value of values) {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    if (Number.isFinite(parsed)) return parsed;
   }
-  return normalized.includes(active.toLowerCase());
+  return 0;
 };
 
 const isTrueFlag = (value: unknown) =>
   value === true || value === 1 || (typeof value === 'string' && value.trim().toLowerCase() === 'true');
 
+const normalizeApiItem = (value: unknown): Item | null => {
+  if (!isRecord(value) || value.id === undefined || value.id === null) return null;
+  const images = Array.isArray(value.images)
+    ? value.images.filter((image): image is string => typeof image === 'string' && Boolean(image.trim()))
+    : [];
+  const metadata = readRecord(value.metadata, value.item_metadata);
+  const ownerRecord = isRecord(value.owner) ? value.owner : undefined;
+  const ownerIdValue = ownerRecord?.id ?? value.owner_id;
+  const ownerId = typeof ownerIdValue === 'string' || typeof ownerIdValue === 'number'
+    ? String(ownerIdValue).trim()
+    : '';
+  const ownerName = firstText(ownerRecord?.name, value.owner_name);
+  const ownerAvatar = firstText(ownerRecord?.avatar, ownerRecord?.avatar_url, ownerRecord?.profile_image, value.owner_avatar);
+  const ownerPhone = firstText(ownerRecord?.phone, ownerRecord?.phone_number, value.contact_phone, value.phone);
+  const ownerVerified = isTrueFlag(ownerRecord?.verified) || isTrueFlag(value.owner_verified) || isTrueFlag(value.verified);
+  const purposeText = firstText(value.purpose, value.transaction_type).toLowerCase();
+  return {
+    id: String(value.id),
+    title: firstText(value.title, value.name) || 'Untitled Listing',
+    price: numberValue(value.price, value.amount),
+    image: firstText(value.image, value.image_url, images[0]),
+    images,
+    location: firstText(value.location, value.subcity, value.city) || 'Location not provided',
+    category: firstText(value.category, value.category_name),
+    isPremium: isTrueFlag(value.premium) || isTrueFlag(value.isPremium),
+    purpose: /rent/.test(purposeText) ? 'rent' : /sell|sale/.test(purposeText) ? 'sell' : purposeText || undefined,
+    createdAt: firstText(value.created_at, value.createdAt) || undefined,
+    status: firstText(value.status, value.status_label).toLowerCase(),
+    metadata,
+    specifications: readRecord(value.specifications),
+    owner: ownerId || ownerName || ownerAvatar || ownerPhone || ownerVerified
+      ? { id: ownerId, name: ownerName, avatar: ownerAvatar, phone: ownerPhone, verified: ownerVerified }
+      : undefined,
+    rating: numberValue(value.rating, value.avg_rating),
+    reviews: numberValue(value.reviews, value.rating_count),
+    billingPeriod: firstText(value.billing_period, value.rent_period, metadata?.billing_period, metadata?.rent_period) || undefined,
+  };
+};
+
 const mapPostedItemToHomepageItem = (item: OwnerPostedItem): Item => ({
   id: item.id,
   title: item.title,
   price: item.price,
-  image: item.images?.[0] || 'https://via.placeholder.com/640x480?text=No+Image',
-  location: item.location || item.specialLocation || 'Gondar',
+  image: item.images?.[0] || '',
+  images: item.images,
+  location: item.location || item.specialLocation || 'Location not provided',
   category: item.category || 'Other',
-  subcity: item.location || undefined,
-  kebele: undefined,
-  rating: undefined,
-  reviews: undefined,
   isPremium: isTrueFlag(item.premium),
-  isVerified: false,
-  imageCount: item.images?.length || 0,
-  purpose: item.saleType,
-  tags: [],
+  purpose: item.saleType?.toLowerCase(),
   createdAt: item.createdAt,
-  status: item.status,
+  status: item.status.toLowerCase(),
 });
 
+const categoryMatches = (category: string, selected: string) => {
+  const normalizedCategory = category.trim().toLowerCase();
+  const normalizedSelected = selected.trim().toLowerCase();
+  if (normalizedSelected === 'homes') {
+    return normalizedCategory.includes('home') || normalizedCategory.includes('property');
+  }
+  if (normalizedSelected === 'vehicles') {
+    return normalizedCategory.includes('vehicle') || normalizedCategory.includes('car');
+  }
+  if (normalizedSelected === 'land') {
+    return normalizedCategory.includes('land') || normalizedCategory.includes('plot') || normalizedCategory.includes('lot');
+  }
+  if (normalizedSelected === 'events') {
+    return normalizedCategory.includes('event');
+  }
+  return normalizedCategory === normalizedSelected;
+};
+
 const DesktopHomepage: React.FC = () => {
-  const [search, setSearch] = useState('');
-  const [submittedSearch, setSubmittedSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
   const [transactionType, setTransactionType] = useState<'all' | 'rent' | 'sell'>('all');
   const [activeSlide, setActiveSlide] = useState(0);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
-  const [, setIsSearching] = useState(false);
-  const [showQuickFilters, setShowQuickFilters] = useState(false);
-  const [, setError] = useState('');
-  const [now, setNow] = useState(() => Date.now());
-  const navigate = useNavigate();
-
-  const premiumRotationSeed = useMemo(() => getStoredRotationSeed(PREMIUM_ROTATION_STORAGE_KEY), []);
-  const recentRotationSeed = useMemo(() => getStoredRotationSeed(RECENT_ROTATION_STORAGE_KEY), []);
-
-  const getApiCategory = (category: string) => {
-    if (!category || category === 'All') return undefined;
-    return category;
-  };
-
-  const getApiTransaction = (type: 'all' | 'rent' | 'sell') => (type === 'all' ? undefined : type);
+  const [itemsError, setItemsError] = useState('');
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchItems = async () => {
       try {
         setLoading(true);
-        setError('');
+        setItemsError('');
 
-        const params: Record<string, string | number | undefined> = {
-          limit: 100,
-          q: submittedSearch || undefined,
-          category: getApiCategory(activeCategory),
-          transaction_type: getApiTransaction(transactionType),
-        };
+        const pageSize = 500;
+        const allItems: unknown[] = [];
+        let offset = 0;
+        let page: unknown[];
+        do {
+          const response = await api.get('/items', { params: { limit: pageSize, offset } });
+          const data: unknown = response.data;
+          if (Array.isArray(data)) {
+            page = data;
+          } else if (isRecord(data) && Array.isArray(data.items)) {
+            page = data.items;
+          } else {
+            throw new Error('The listings response did not contain an item list.');
+          }
+          allItems.push(...page);
+          offset += page.length;
+        } while (page.length === pageSize);
 
-        const response = await api.get('/items', { params });
-        const data = response.data;
-        const allItems = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
-
-        const fetchedItems: Item[] = allItems
-          .map((item: any) => ({
-            id: String(item.id),
-            title: item.title || item.name || 'Untitled Listing',
-            price: Number(item.price || item.amount || 0),
-            image: item.image || item.image_url || item.images?.[0] || 'https://via.placeholder.com/640x480?text=No+Image',
-            location: item.location || item.subcity || item.city || 'Unknown Location',
-            category: item.category || item.category_name || item.transaction_type || 'Other',
-            subcity: item.subcity,
-            kebele: item.kebele,
-            rating: Number(item.rating || item.avg_rating || 4.2),
-            reviews: Number(item.reviews || item.rating_count || 0),
-            isPremium: isTrueFlag(item.premium) || isTrueFlag(item.isPremium),
-            isVerified: Boolean(item.verified || item.owner?.verified),
-            imageCount: Number(item.imageCount || item.images?.length || 0),
-            purpose: item.purpose || item.transaction_type,
-            tags: Array.isArray(item.tags) ? item.tags : Array.isArray(item.highlights) ? item.highlights : [],
-            createdAt: item.created_at || item.createdAt,
-            status: String(item.status || item.status_label || '').toLowerCase(),
-          }))
-          .filter((item: any) => {
-            const isActive = String(item.status || '').toLowerCase() === 'active';
-            const matchesTransaction = transactionType === 'all' || item.purpose === transactionType;
-            const matchesCategory = activeCategory === 'All'
-              ? true
-              : activeCategory === 'Others'
-              ? categoryMatch(item.category, 'Others')
-              : item.category?.toLowerCase().includes(activeCategory.toLowerCase());
-            return isActive && matchesTransaction && matchesCategory;
-          });
-
-        const searchTerm = submittedSearch.trim().toLowerCase();
+        const fetchedItems = allItems
+          .map(normalizeApiItem)
+          .filter((item): item is Item => item !== null && item.status === 'active');
         const localItems = loadOwnerItems()
           .map(mapPostedItemToHomepageItem)
-          .filter((item) => {
-            const isActive = String(item.status || '').toLowerCase() === 'active';
-            const matchesTransaction = transactionType === 'all' || item.purpose === transactionType;
-            const matchesCategory = activeCategory === 'All'
-              ? true
-              : activeCategory === 'Others'
-              ? categoryMatch(item.category, 'Others')
-              : item.category?.toLowerCase().includes(activeCategory.toLowerCase());
-            const matchesSearch = !searchTerm || [item.title, item.location, item.category]
-              .join(' ')
-              .toLowerCase()
-              .includes(searchTerm);
-            return isActive && matchesTransaction && matchesCategory && matchesSearch;
-          });
+          .filter((item) => item.status === 'active');
 
         const localIds = new Set(localItems.map((item) => item.id));
         const combined = [...localItems, ...fetchedItems.filter((item) => !localIds.has(item.id))];
         combined.sort((a, b) =>
-          Number(new Date(b.createdAt || b.created_at || 0)) -
-          Number(new Date(a.createdAt || a.created_at || 0))
+          Date.parse(b.createdAt || '') - Date.parse(a.createdAt || '')
         );
         setItems(combined);
       } catch (error) {
         console.error('Failed to load homepage items', error);
         setItems([]);
-        setError('Unable to load listings. Please try again.');
+        setItemsError('We could not load listings right now. Please try again in a little while.');
       } finally {
         setLoading(false);
-        setIsSearching(false);
       }
     };
 
     fetchItems();
-  }, [activeCategory, submittedSearch, transactionType]);
-
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (search.trim().length < 2) {
-        setSuggestions([]);
-        return;
-      }
-
-      try {
-        const response = await api.get('/items', {
-          params: {
-            q: search.trim(),
-            limit: 5,
-          },
-        });
-        const data = response.data;
-        const rows = Array.isArray(data)
-          ? data
-          : Array.isArray(data.items)
-            ? data.items
-            : [];
-
-        setSuggestions(rows.slice(0, 5).map((item: any) => ({
-          id: String(item.id),
-          title: item.title || item.name || 'Untitled',
-          category: item.category || item.category_name || item.transaction_type || 'Other',
-        })));
-      } catch {
-        setSuggestions([]);
-      }
-    };
-
-    const timeout = window.setTimeout(fetchSuggestions, 250);
-    return () => window.clearTimeout(timeout);
-  }, [search]);
-
-  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmed = search.trim();
-    setIsSearching(true);
-    setSubmittedSearch(trimmed);
-    setShowSuggestions(false);
-    const params = new URLSearchParams();
-    if (trimmed) params.set('q', trimmed);
-    if (activeCategory && activeCategory !== 'All') params.set('category', activeCategory);
-    if (transactionType && transactionType !== 'all') params.set('type', transactionType);
-
-    console.log('[DesktopHomepage] Search submit:', {
-      search: trimmed,
-      category: activeCategory,
-      transactionType,
-      url: `/search?${params.toString()}`,
-    });
-
-    navigate(`/search?${params.toString()}`);
-  };
-
-  const handleSearchInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      event.currentTarget.form?.requestSubmit();
-    }
-  };
-
-  const handleSuggestionClick = (itemId: string) => {
-    setShowSuggestions(false);
-    setSearch('');
-    navigate(`/item/${itemId}`);
-  };
-
-  const toggleCategory = (category: string) => {
-    setActiveCategory((current) => (current === category ? 'All' : category));
-  };
-
-  const toggleTransaction = (type: 'all' | 'rent' | 'sell') => {
-    setTransactionType((current) => (current === type ? 'all' : type));
-  };
+  }, []);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -316,85 +192,26 @@ const DesktopHomepage: React.FC = () => {
     return () => window.clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(interval);
-  }, []);
+  const premiumItems = useMemo(() => items.filter((item) => item.isPremium), [items]);
+  const recentItems = useMemo(() => items.filter((item) => !item.isPremium), [items]);
+  const categories = useMemo(() => {
+    const discoveredNames = items
+      .map((item) => item.category.trim())
+      .filter((name) => name && name.toLowerCase() !== 'other');
+    const additionalNames = Array.from(new Set(discoveredNames))
+      .filter((name) => !featuredCategories.some((featured) => categoryMatches(name, featured)))
+      .sort((a, b) => a.localeCompare(b));
 
-  const premiumItems = useMemo(
-    () => items.filter((item) => item.isPremium).sort(sortByNewest),
-    [items]
+    return [...featuredCategories, ...additionalNames].map((name) => ({
+      name,
+      count: items.filter((item) => categoryMatches(item.category, name)).length,
+    }));
+  }, [items]);
+  const isSeller = Boolean(
+    user?.isSeller || ['owner', 'seller'].includes(String(user?.role || '').toLowerCase())
   );
-
-  const recentItems = useMemo(
-    () => items.filter((item) => !item.isPremium).sort(sortByNewest),
-    [items]
-  );
-
-  const premiumWindowIndex = premiumItems.length > HOME_SECTION_CARD_COUNT
-    ? (Math.floor((now - premiumRotationSeed) / PREMIUM_ROTATION_MS) * HOME_SECTION_CARD_COUNT) % premiumItems.length
-    : 0;
-
-  const recentWindowIndex = recentItems.length > HOME_SECTION_CARD_COUNT
-    ? Math.floor((now - recentRotationSeed) / RECENT_ROTATION_MS) % recentItems.length
-    : 0;
-
-  const premiumWindow = buildCycledWindow(premiumItems, premiumWindowIndex, HOME_SECTION_CARD_COUNT);
-  const recentWindow = buildCycledWindow(recentItems, recentWindowIndex, HOME_SECTION_CARD_COUNT);
-
-  const premiumCountdownMs = PREMIUM_ROTATION_MS - ((now - premiumRotationSeed) % PREMIUM_ROTATION_MS);
-
-  const renderListingRail = (
-    title: string,
-    subtitle: string,
-    railItems: Item[],
-    meta: React.ReactNode,
-    emptyMessage: string,
-  ) => (
-    <section className="rounded-[28px] border border-white/80 bg-white/85 px-5 py-5 shadow-[0_18px_50px_rgba(31,41,55,0.08)] backdrop-blur-sm sm:px-6">
-      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#6C3BFF]">{title}</p>
-          <h2 className="mt-2 text-2xl font-bold text-slate-950 sm:text-3xl">{subtitle}</h2>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-600">
-          {meta}
-        </div>
-      </div>
-
-      {railItems.length > 0 ? (
-        <div className="overflow-x-auto scrollbar-hidden pb-2">
-          <div className="grid min-w-max grid-flow-col grid-rows-2 gap-5 auto-cols-[280px] sm:auto-cols-[300px] xl:auto-cols-[320px]">
-            {railItems.map((item) => (
-              <ItemCard
-                key={`${title}-${item.id}`}
-                id={item.id}
-                title={item.title}
-                price={item.price}
-                image={item.image}
-                location={item.location}
-                category={item.category}
-                subcity={item.subcity}
-                kebele={item.kebele}
-                rating={item.rating}
-                reviews={item.reviews}
-                isPremium={item.isPremium}
-                isVerified={item.isVerified}
-                imageCount={item.imageCount}
-                type={item.purpose as 'rent' | 'sell'}
-                tags={item.tags}
-                className="w-full"
-              />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center text-slate-500">
-          {emptyMessage}
-        </div>
-      )}
-    </section>
-  );
+  const listingActionHref = isSeller ? '/post-item' : user ? '/seller/upgrade' : '/post-item';
+  const listingActionLabel = isSeller ? 'Post an item' : user ? 'Become a seller' : 'Get started';
 
   return (
     <div className="min-h-screen bg-[#F0EBFF] text-[#1F2937]">
@@ -423,68 +240,6 @@ const DesktopHomepage: React.FC = () => {
                 Search trusted listings for homes, vehicles, land, events, and more.
               </p>
 
-              <div className="mt-7 w-full rounded-2xl bg-white p-2 shadow-2xl">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <div className="relative flex min-w-0 flex-1 items-center">
-                    <input
-                      type="text"
-                      id="homepage-search"
-                      form="homepage-search-form"
-                      value={search}
-                      onFocus={() => setShowSuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                      onChange={(e) => setSearch(e.target.value)}
-                      onKeyDown={handleSearchInputKeyDown}
-                      placeholder="Search homes, cars, land, or events"
-                      className="w-full rounded-xl border-0 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-[#6C3BFF]"
-                      autoComplete="off"
-                    />
-                    {showSuggestions && suggestions.length > 0 && (
-                      <div className="absolute left-0 right-0 top-full z-20 mt-2 rounded-2xl border border-slate-200 bg-white shadow-xl">
-                        {suggestions.map((suggestion) => (
-                          <button key={suggestion.id} type="button" onMouseDown={() => handleSuggestionClick(suggestion.id)} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm text-slate-700 hover:bg-[#F3E8FF]">
-                            <span>{suggestion.title}</span>
-                            <span className="text-xs uppercase tracking-[0.15em] text-slate-400">{suggestion.category}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button type="submit" form="homepage-search-form" aria-label="Search listings" className="rounded-xl bg-[#6C3BFF] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#5A2FE0]">
-                    Search
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="mr-1 text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Explore</span>
-                {[
-                  { label: 'Homes', value: 'homes' },
-                  { label: 'Vehicles', value: 'vehicles' },
-                  { label: 'Land', value: 'land' },
-                  { label: 'Events', value: 'event-materials' },
-                ].map((category) => (
-                  <Link key={category.value} to={`/search?category=${category.value}`} className="rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white hover:text-[#060B31]">
-                    {category.label}
-                  </Link>
-                ))}
-              </div>
-
-              <form id="homepage-search-form" onSubmit={handleSearchSubmit} className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Looking to</span>
-                <div className="inline-flex overflow-hidden rounded-full border border-white/30 bg-white/10 p-1">
-                  {(['rent', 'sell'] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setTransactionType(t)}
-                      className={`px-5 py-2 text-sm font-semibold rounded-full transition ${transactionType === t ? 'bg-white text-[#6D28D9] shadow' : 'text-white hover:bg-white/20'}`}
-                    >
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </form>
             </div>
 
             {/* Slide dots */}
@@ -502,93 +257,140 @@ const DesktopHomepage: React.FC = () => {
           </div>
         </section>
 
-        {/* LISTINGS */}
-        <section className="px-5 pt-10 pb-8 md:px-8">
-          <div className="mx-auto max-w-[1440px] space-y-8">
+        <div className="homepage-below-hero">
+          <div className="mx-auto max-w-[1440px] space-y-8 px-4 pb-12 pt-8 sm:px-6 md:px-8 md:pt-10">
+            {itemsError && (
+              <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-800">
+                {itemsError}
+              </p>
+            )}
+
             {loading ? (
               <>
-                <div className="rounded-[28px] border border-white/80 bg-white/85 px-5 py-5 shadow-[0_18px_50px_rgba(31,41,55,0.08)]">
-                  <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                    <div>
-                      <div className="h-3 w-40 rounded-full bg-slate-200" />
-                      <div className="mt-3 h-8 w-72 rounded-full bg-slate-200" />
-                    </div>
-                    <div className="h-4 w-48 rounded-full bg-slate-200" />
+                <section className="rounded-[28px] border border-white/90 bg-white/90 p-5 shadow-[0_16px_44px_rgba(37,31,83,0.07)] sm:p-6" aria-label="Loading categories">
+                  <div className="mb-6 h-8 w-56 animate-pulse rounded-lg bg-slate-200" />
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                    {Array.from({ length: 5 }, (_, index) => (
+                      <div key={index} className="h-36 animate-pulse rounded-3xl bg-slate-100" />
+                    ))}
                   </div>
-                  <div className="overflow-hidden">
-                    <div className="grid min-w-max grid-flow-col grid-rows-2 gap-5 auto-cols-[280px] sm:auto-cols-[300px] xl:auto-cols-[320px]">
-                      {Array.from({ length: HOME_SECTION_CARD_COUNT }).map((_, index) => (
-                        <div key={index} className="h-[420px] animate-pulse rounded-[24px] bg-slate-100" />
-                      ))}
+                </section>
+                <HomepageListingRail title="Listings" description="Loading listings" viewAllHref="/search">
+                  {Array.from({ length: 4 }, (_, index) => (
+                    <div key={index} className="w-[min(78vw,280px)] shrink-0 snap-start">
+                      <div className="aspect-[4/3] animate-pulse rounded-2xl bg-slate-200" />
+                      <div className="mt-3 h-4 w-4/5 animate-pulse rounded bg-slate-200" />
+                      <div className="mt-2 h-4 w-2/3 animate-pulse rounded bg-slate-200" />
                     </div>
-                  </div>
-                </div>
-
-                <div className="rounded-[28px] border border-white/80 bg-white/85 px-5 py-5 shadow-[0_18px_50px_rgba(31,41,55,0.08)]">
-                  <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                    <div>
-                      <div className="h-3 w-40 rounded-full bg-slate-200" />
-                      <div className="mt-3 h-8 w-72 rounded-full bg-slate-200" />
-                    </div>
-                    <div className="h-4 w-48 rounded-full bg-slate-200" />
-                  </div>
-                  <div className="overflow-hidden">
-                    <div className="grid min-w-max grid-flow-col grid-rows-2 gap-5 auto-cols-[280px] sm:auto-cols-[300px] xl:auto-cols-[320px]">
-                      {Array.from({ length: HOME_SECTION_CARD_COUNT }).map((_, index) => (
-                        <div key={index} className="h-[420px] animate-pulse rounded-[24px] bg-slate-100" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                  ))}
+                </HomepageListingRail>
               </>
             ) : (
               <>
-                {premiumItems.length > 0 && renderListingRail(
-                    'Premium listings',
-                    'Hand-picked premium items with a live 72-hour rotation',
-                    premiumWindow,
-                    <>
-                      <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-800">
-                        {premiumItems.length} premium items
-                      </span>
-                      <span className="rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-1 text-[#4F46E5]">
-                        Rotates in {formatCountdown(premiumCountdownMs)}
-                      </span>
-                    </>,
-                    'No premium listings available yet.',
-                  )}
-
-                {renderListingRail(
-                  'Recent additions',
-                  'Newest items cycle forward every 5 seconds',
-                  recentWindow,
-                  <>
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">
-                      {recentItems.length} recent items
-                    </span>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">
-                      Refreshes every 5 seconds
-                    </span>
-                  </>,
-                  'No recent additions found.',
-                )}
-
-                {items.length === 0 && (
-                  <div className="rounded-[16px] bg-white p-10 text-center shadow-[0_12px_30px_rgba(26,26,26,0.08)]">
-                    <p className="text-xl font-semibold text-[#1A1A1A]">No active listings yet</p>
-                    <p className="mt-3 text-[#1A1A1A]/70">New marketplace listings will appear here soon.</p>
+                <section className="rounded-2xl border border-white/90 bg-white/90 p-3 shadow-[0_10px_28px_rgba(37,31,83,0.06)] sm:p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#6C3BFF]">Find what you need</p>
+                      <h2 className="mt-1 text-lg font-bold tracking-tight text-slate-950 sm:text-xl">Browse by category</h2>
+                    </div>
                     <Link
-                      to="/"
-                      className="mt-6 inline-flex rounded-full border border-[#6D28D9] bg-[#EEF2FF] px-6 py-3 text-sm font-semibold text-[#1F2937] transition hover:bg-[#6D28D9] hover:text-white"
+                      to="/search"
+                      className="rounded-lg px-2 py-1 text-xs font-semibold text-[#5630C6] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6C3BFF]"
                     >
-                      Reset filters
+                      View all
                     </Link>
                   </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                    {categories.map((category) => {
+                      const slug = categorySlugFromName(category.name);
+                      const href = slug
+                        ? searchPathForCategory(slug)
+                        : `/search?category=${encodeURIComponent(category.name)}`;
+                      const icon = category.name === 'Homes'
+                        ? <House aria-hidden="true" className="h-7 w-7" />
+                        : category.name === 'Vehicles'
+                          ? <CarFront aria-hidden="true" className="h-7 w-7" />
+                          : category.name === 'Land'
+                            ? <Map aria-hidden="true" className="h-7 w-7" />
+                            : category.name === 'Events'
+                              ? <CalendarDays aria-hidden="true" className="h-7 w-7" />
+                              : <Shapes aria-hidden="true" className="h-7 w-7" />;
+
+                      return (
+                        <Link
+                          key={category.name}
+                          to={href}
+                          className="group rounded-2xl border border-slate-200/80 bg-[#FCFBFF] p-2.5 transition hover:-translate-y-0.5 hover:border-violet-200 hover:bg-white hover:shadow-[0_8px_20px_rgba(37,31,83,0.08)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#6C3BFF]/30 sm:p-3"
+                        >
+                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#EEE9FF] text-[#6138D8] transition group-hover:bg-[#6C3BFF] group-hover:text-white">
+                            {icon}
+                          </span>
+                          <span className="mt-2 block text-sm font-bold text-slate-950">{category.name}</span>
+                          <span className="mt-0.5 block text-xs text-slate-600">
+                            {itemsError
+                              ? 'Count unavailable'
+                              : `${category.count.toLocaleString()} active ${category.count === 1 ? 'listing' : 'listings'}`}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                {premiumItems.length > 0 && (
+                  <HomepageListingRail
+                    title="Premium listings"
+                    description="Featured in the marketplace"
+                    viewAllHref="/search"
+                  >
+                    {premiumItems.map((item) => <HomepageListingCard key={`premium-${item.id}`} item={item} />)}
+                  </HomepageListingRail>
                 )}
+
+                <HomepageListingRail
+                  title="Recent additions"
+                  description="Fresh listings"
+                  viewAllHref="/search"
+                >
+                  {recentItems.length > 0 ? recentItems.map((item) => (
+                    <HomepageListingCard key={`recent-${item.id}`} item={item} />
+                  )) : (
+                    <div className="w-full rounded-2xl border border-dashed border-slate-300 bg-[#FAF9FF] px-5 py-9 text-center">
+                      <p className="text-lg font-semibold text-slate-900">
+                        {itemsError
+                          ? 'Listings are temporarily unavailable'
+                          : items.length === 0 ? 'No active listings just yet' : 'No recent additions right now'}
+                      </p>
+                      <p className="mt-2 text-sm text-slate-600">
+                        {itemsError
+                          ? 'Please try again later.'
+                          : items.length === 0
+                          ? 'When listings become available, you will find them here.'
+                          : 'Premium listings are shown above; new additions will appear here.'}
+                      </p>
+                    </div>
+                  )}
+                </HomepageListingRail>
               </>
             )}
+
+            <section className="homepage-cta-strip flex flex-col items-start justify-between gap-5 rounded-[28px] px-6 py-8 text-white sm:flex-row sm:items-center sm:px-8">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Have something to rent or sell?</h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-white/80">
+                  Add your item to the FasilLink marketplace.
+                </p>
+              </div>
+              <Link
+                to={listingActionHref}
+                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-[#5630C6] transition hover:bg-[#F0EBFF] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50"
+              >
+                {listingActionLabel}
+                <ArrowRight aria-hidden="true" className="h-4 w-4" />
+              </Link>
+            </section>
           </div>
-        </section>
+        </div>
       </main>
 
       <FloatingAIAssistant />

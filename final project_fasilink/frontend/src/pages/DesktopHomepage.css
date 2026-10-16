@@ -1,3 +1,47 @@
 .hero-image {
   filter: saturate(1.4) brightness(0.85);
 }
+
+.homepage-below-hero {
+  position: relative;
+  z-index: 1;
+  margin-top: -3.5rem;
+  border-radius: 3.5rem 3.5rem 0 0;
+  background: linear-gradient(180deg, rgba(247, 246, 255, 0.62) 0, #f7f6ff 5.5rem);
+}
+
+.homepage-listing-rail {
+  scrollbar-color: #c9c2e6 transparent;
+  scrollbar-width: thin;
+  scroll-padding-inline: 0.25rem;
+}
+
+.homepage-listing-rail::-webkit-scrollbar {
+  height: 7px;
+}
+
+.homepage-listing-rail::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.homepage-listing-rail::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #c9c2e6;
+}
+
+.homepage-listing-card button:focus-visible {
+  outline: 3px solid #6c3bff;
+  outline-offset: 3px;
+}
+
+.homepage-cta-strip {
+  background: linear-gradient(115deg, #35236f 0%, #5938b4 58%, #6c3bff 100%);
+  box-shadow: 0 18px 40px rgba(65, 43, 144, 0.18);
+}
+
+@media (max-width: 400px) {
+  .homepage-below-hero {
+    margin-top: -2.75rem;
+    border-radius: 2.5rem 2.5rem 0 0;
+  }
+}

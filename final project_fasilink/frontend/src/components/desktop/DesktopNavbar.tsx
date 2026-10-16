@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, X, Bell } from 'lucide-react';
+import { Heart, MessageCircle, X, Bell, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useMessageNotifications } from '../../hooks/useMessageNotifications';
 import './DesktopNavbar.css';
 import { useFavorites } from '../../context/FavoritesContext';
+import SmartSearchBar from './SmartSearchBar';
 
 interface DesktopNavbarProps {
   transactionType?: 'all' | 'rent' | 'sell';
@@ -15,7 +16,12 @@ interface DesktopNavbarProps {
 
 // Use `FavoriteItem` from FavoritesContext; avoid local duplicate type to prevent conflicts.
 
-const DesktopNavbar: React.FC<DesktopNavbarProps> = ({ isHomePage = false }) => {
+const DesktopNavbar: React.FC<DesktopNavbarProps> = ({
+  isHomePage = false,
+  transactionType = 'all',
+  onTransactionTypeChange,
+}) => {
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { favorites: favoriteItems, favoriteCount, toggleFavorite } = useFavorites();
   const [showFavoritesDropdown, setShowFavoritesDropdown] = useState(false);
@@ -130,7 +136,7 @@ const DesktopNavbar: React.FC<DesktopNavbarProps> = ({ isHomePage = false }) => 
           {favoritesAlert}
         </div>
       )}
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-5 py-3">
+      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
 
         <Link to="/" className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F3E8FF] text-[#6D28D9] shadow-sm">
@@ -144,7 +150,24 @@ const DesktopNavbar: React.FC<DesktopNavbarProps> = ({ isHomePage = false }) => 
           <p className="text-lg font-bold text-[#4C1D95]">FasilLink</p>
         </Link>
 
+        <div className="mx-4 hidden w-full max-w-[960px] flex-1 lg:block">
+          <SmartSearchBar
+            transactionType={transactionType}
+            onTransactionTypeChange={onTransactionTypeChange}
+          />
+        </div>
+
         <div className="flex flex-1 items-center justify-end gap-3">
+
+          <button
+            type="button"
+            onClick={() => setShowMobileSearch((visible) => !visible)}
+            aria-label={showMobileSearch ? 'Close search' : 'Open search'}
+            aria-expanded={showMobileSearch}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:hidden"
+          >
+            {showMobileSearch ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+          </button>
 
           <div className="relative" ref={favoritesRef}>
             <button
@@ -306,6 +329,7 @@ const DesktopNavbar: React.FC<DesktopNavbarProps> = ({ isHomePage = false }) => 
                     View all notifications →
                   </Link>
                 </div>
+
               </div>
             )}
           </div>
@@ -369,6 +393,15 @@ const DesktopNavbar: React.FC<DesktopNavbarProps> = ({ isHomePage = false }) => 
             )}
           </div>
         </div>
+        {showMobileSearch && (
+          <div className="basis-full lg:hidden">
+            <SmartSearchBar
+              transactionType={transactionType}
+              onTransactionTypeChange={onTransactionTypeChange}
+              onSearchSubmitted={() => setShowMobileSearch(false)}
+            />
+          </div>
+        )}
       </div>
     </nav>
   );
